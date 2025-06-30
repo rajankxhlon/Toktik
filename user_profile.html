@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+        #app-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Allows scrolling for the entire profile content */
+            padding-bottom: 60px; /* Space for the fixed footer nav */
+            box-sizing: border-box;
+        }
+
+        .profile-header {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #333;
+        }
+
+        /* --- Styles for Profile Pic --- */
+        .profile-pic-area {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #555;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5em;
+            font-weight: bold;
+            color: white;
+            text-transform: uppercase;
+            border: 3px solid white;
+            overflow: hidden; /* Ensures image stays within bounds */
+            margin-bottom: 15px;
+        }
+
+        .profile-pic-area img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .username-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px; /* Adjusted margin */
+        }
+
+        .username {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .verified-tick {
+            color: #007bff;
+            font-size: 1.2em;
+        }
+
+        .profile-stats {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            padding: 10px 0;
+            margin-bottom: 15px; /* Adjusted margin */
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.9em;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .user-bio {
+            text-align: center;
+            padding: 0 20px 15px; /* Added padding and bottom margin */
+            font-size: 0.95em;
+            color: #ccc;
+            max-width: 500px; /* Limit bio width */
+            line-height: 1.4;
+            white-space: pre-wrap; /* Preserve line breaks */
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .profile-action-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+
+        .profile-action-btn.unfollow {
+            background-color: #555; /* Different color for unfollow */
+        }
+
+        .profile-action-btn:hover {
+            background-color: #0056b3;
+        }
+        .profile-action-btn.unfollow:hover {
+            background-color: #777;
+        }
+
+        .section-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 15px;
+            border-bottom: 1px solid #333;
+            margin-top: 15px;
+        }
+
+        #user-posts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 3 columns grid */
+            gap: 2px; /* Small gap between reels */
+            padding: 2px;
+            flex-grow: 1; /* Allow grid to take available space */
+        }
+
+        .post-thumbnail {
+            width: 100%;
+            padding-top: 100%; /* Makes the height equal to the width for a square aspect ratio */
+            position: relative;
+            overflow: hidden;
+            background-color: #333; /* Placeholder background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer; /* Indicate clickable */
+        }
+
+        .post-thumbnail img, .post-thumbnail video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .post-thumbnail .no-preview {
+            color: #aaa;
+            font-size: 0.8em;
+            text-align: center;
+            padding: 5px;
+        }
+
+        /* --- New styles for View Count --- */
+        .post-views-count {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            font-size: 0.75em;
+            padding: 3px 6px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            z-index: 9; /* Below options menu */
+        }
+        .post-views-count i {
+            font-size: 0.8em; /* Smaller icon for view count */
+        }
+
+        /* Utility class to hide elements */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Footer Navigation (Copied from reels.html) */
+        .footer-nav {
+            position: fixed;
+            bottom: 0;
+            height: 60px;
+            width: 100%;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #333;
+            z-index: 100;
+        }
+        .footer-nav a {
+            color: #ccc;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.8em;
+        }
+        .footer-nav a:hover, .footer-nav a.active {
+            color: #007bff;
+        }
+        .footer-nav i {
+            font-size: 1.5em;
+            margin-bottom: 4px;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div class="profile-header">
+            <button id="backButton" style="position: absolute; top: 15px; left: 15px; background: none; border: none; color: white; font-size: 1.5em; cursor: pointer;">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+
+            <div class="profile-pic-area" id="profilePicArea">
+                </div>
+            <div class="username-container">
+                <span class="username" id="profileUsername"></span>
+                <i class="fas fa-check-circle verified-tick hidden" id="verifiedTick"></i>
+            </div>
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <span class="stat-value" id="postsCount">0</span>
+                    <span>Posts</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="followersCount">0</span>
+                    <span>Followers</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="followingCount">0</span>
+                    <span>Following</span>
+                </div>
+            </div>
+            <div class="user-bio" id="userBio">
+                </div>
+            <div class="profile-actions">
+                <button class="profile-action-btn" id="followBtn">Follow</button>
+            </div>
+        </div>
+
+        <div class="section-title">Posts</div>
+        <div id="user-posts-grid">
+            <p style="text-align: center; width: 100%; margin-top: 20px; color: #aaa;">No posts from this user yet.</p>
+        </div>
+    </div>
+
+    <div class="footer-nav">
+        <a href="home.html" class="nav-item" id="nav-home"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="search.html" class="nav-item" id="nav-search"><i class="fas fa-search"></i><span>Search</span></a>
+        <a href="create_reel.html" class="nav-item" id="nav-upload"><i class="fas fa-plus-square"></i><span>Create</span></a>
+        <a href="notification.html" class="nav-item" id="nav-activity"><i class="fas fa-heart"></i><span>Activity</span></a>
+        <a href="profile.html" class="nav-item" id="nav-profile"><i class="fas fa-user"></i><span>Profile</span></a>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAM2RLdA9wnsy5Nxo29KH7gUsaV4hfbH3U",
+            authDomain: "timtom-54c39.firebaseapp.com",
+            projectId: "timtom-54c39",
+            storageBucket: "timtom-54c39.firebasestorage.app",
+            messagingSenderId: "981119735149",
+            appId: "1:981119735149:web:b94b2cea3496b7abb4b664",
+            measurementId: "G-WNNN6WP21T"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        const CLOUDINARY_CLOUD_NAME = "dhc49hdvk";
+
+        const profilePicArea = document.getElementById('profilePicArea');
+        const profileUsername = document.getElementById('profileUsername');
+        const verifiedTick = document.getElementById('verifiedTick');
+        const postsCount = document.getElementById('postsCount');
+        const followersCount = document.getElementById('followersCount');
+        const followingCount = document.getElementById('followingCount');
+        const userBio = document.getElementById('userBio');
+        const userPostsGrid = document.getElementById('user-posts-grid');
+        const followBtn = document.getElementById('followBtn');
+        const backButton = document.getElementById('backButton');
+
+        let currentViewingUserId = null; // The ID of the user whose profile is being viewed
+        let loggedInUser = null; // The currently authenticated user
+
+        document.addEventListener('DOMContentLoaded', () => {
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    loggedInUser = user;
+                    const urlParams = new URLSearchParams(window.location.search);
+                    currentViewingUserId = urlParams.get('userId');
+
+                    if (currentViewingUserId) {
+                        // If the user tries to view their own profile via user_profile.html, redirect them to profile.html
+                        if (currentViewingUserId === loggedInUser.uid) {
+                            window.location.href = 'profile.html';
+                            return;
+                        }
+                        await loadUserProfile(currentViewingUserId);
+                        await loadUserReels(currentViewingUserId);
+                        await updateFollowButtonState();
+                    } else {
+                        alert('No user ID specified. Redirecting to home.');
+                        window.location.href = 'home.html';
+                    }
+                } else {
+                    alert('You are not logged in. Redirecting to login page.');
+                    window.location.href = 'index.html'; // Redirect to login
+                }
+            });
+
+            followBtn.addEventListener('click', handleFollowUnfollow);
+            backButton.addEventListener('click', () => {
+                window.history.back(); // Go back to the previous page
+            });
+        });
+
+        async function loadUserProfile(userId) {
+            try {
+                const userDoc = await db.collection('users').doc(userId).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    profileUsername.textContent = `@${userData.username || 'unknown'}`;
+                    userBio.textContent = userData.bio || 'No bio available.';
+
+                    if (userData.isVerified) {
+                        verifiedTick.classList.remove('hidden');
+                    } else {
+                        verifiedTick.classList.add('hidden');
+                    }
+
+                    // Display profile picture or placeholder
+                    if (userData.profilePictureUrl) {
+                        profilePicArea.innerHTML = `<img src="${userData.profilePictureUrl}" alt="Profile Picture">`;
+                    } else {
+                        const firstLetter = userData.username ? userData.username.charAt(0).toUpperCase() : '?';
+                        profilePicArea.innerHTML = firstLetter;
+                    }
+
+                    // Update stats
+                    const followers = userData.followers ? userData.followers.length : 0;
+                    const following = userData.following ? userData.following.length : 0;
+
+                    followersCount.textContent = followers;
+                    followingCount.textContent = following;
+
+                    // Get reels count separately
+                    const userReels = await db.collection('reels').where('userId', '==', userId).get();
+                    postsCount.textContent = userReels.size;
+
+                } else {
+                    console.warn('User document not found for ID:', userId);
+                    profileUsername.textContent = '@User Not Found'; // Default
+                    userBio.textContent = 'This user does not exist.';
+                    postsCount.textContent = '0';
+                    followersCount.textContent = '0';
+                    followingCount.textContent = '0';
+                    followBtn.classList.add('hidden'); // Hide follow button for non-existent user
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+                alert('Failed to load profile data.');
+            }
+        }
+
+        async function loadUserReels(userId) {
+            userPostsGrid.innerHTML = ''; // Clear previous content
+            try {
+                const querySnapshot = await db.collection('reels')
+                                                .where('userId', '==', userId)
+                                                .orderBy('timestamp', 'desc')
+                                                .get();
+
+                if (querySnapshot.empty) {
+                    userPostsGrid.innerHTML = `<p style="text-align: center; width: 100%; margin-top: 20px; color: #aaa;">No posts from this user yet.</p>`;
+                    return;
+                }
+
+                querySnapshot.forEach(doc => {
+                    const reel = doc.data();
+                    const thumbnailDiv = document.createElement('div');
+                    thumbnailDiv.className = 'post-thumbnail';
+                    thumbnailDiv.dataset.reelId = doc.id; // Store reel ID for playback
+
+                    let cloudinaryVideoPublicId;
+                    if (reel.videoUrl.includes('res.cloudinary.com')) {
+                        const parts = reel.videoUrl.split('/');
+                        const uploadIndex = parts.indexOf('upload');
+                        if (uploadIndex !== -1 && parts.length > uploadIndex + 1) {
+                            const fullPath = parts.slice(uploadIndex + 1).join('/');
+                            cloudinaryVideoPublicId = fullPath.split('.')[0];
+                        }
+                    } else {
+                        cloudinaryVideoPublicId = reel.videoUrl;
+                    }
+
+                    const cloudinaryVideoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/q_auto,f_auto,w_400,h_400,c_fill/${cloudinaryVideoPublicId}.mp4`;
+
+                    thumbnailDiv.innerHTML = `
+                        <video muted playsinline preload="metadata">
+                            <source src="${cloudinaryVideoUrl}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="post-views-count">
+                            <i class="fas fa-eye"></i> <span class="views-value">${reel.viewsCount || 0}</span>
+                        </div>
+                    `;
+
+                    const videoElement = thumbnailDiv.querySelector('video');
+                    videoElement.onloadeddata = () => {
+                        videoElement.currentTime = 0.1;
+                        videoElement.play().then(() => {
+                            videoElement.pause();
+                        }).catch(e => console.warn("Error playing video for thumbnail:", e));
+                    };
+                    videoElement.onerror = () => {
+                        thumbnailDiv.innerHTML = `
+                            <div class="no-preview">Video could not load.</div>
+                            <div class="post-views-count">
+                                <i class="fas fa-eye"></i> <span class="views-value">${reel.viewsCount || 0}</span>
+                            </div>
+                        `;
+                    };
+
+                    userPostsGrid.appendChild(thumbnailDiv);
+
+                    // Click listener for thumbnail to navigate to home.html and play reel
+                    thumbnailDiv.addEventListener('click', () => {
+                        const reelId = thumbnailDiv.dataset.reelId;
+                        window.location.href = `home.html?reelId=${reelId}`;
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading user reels:', error);
+                userPostsGrid.innerHTML = `<p style="text-align: center; width: 100%; margin-top: 20px; color: red;">Failed to load posts.</p>`;
+            }
+        }
+
+        async function updateFollowButtonState() {
+            if (!loggedInUser || !currentViewingUserId) {
+                followBtn.classList.add('hidden');
+                return;
+            }
+
+            // Check if the logged-in user is already following the viewed user
+            const loggedInUserDoc = await db.collection('users').doc(loggedInUser.uid).get();
+            if (loggedInUserDoc.exists) {
+                const following = loggedInUserDoc.data().following || [];
+                if (following.includes(currentViewingUserId)) {
+                    followBtn.textContent = 'Following';
+                    followBtn.classList.add('unfollow');
+                } else {
+                    followBtn.textContent = 'Follow';
+                    followBtn.classList.remove('unfollow');
+                }
+            }
+            followBtn.classList.remove('hidden'); // Ensure button is visible after state check
+        }
+
+        async function handleFollowUnfollow() {
+            if (!loggedInUser || !currentViewingUserId) {
+                alert('You must be logged in to follow/unfollow.');
+                return;
+            }
+
+            if (loggedInUser.uid === currentViewingUserId) {
+                alert("You cannot follow or unfollow yourself.");
+                return;
+            }
+
+            const loggedInUserRef = db.collection('users').doc(loggedInUser.uid);
+            const viewedUserRef = db.collection('users').doc(currentViewingUserId);
+
+            try {
+                await db.runTransaction(async (transaction) => {
+                    const loggedInUserDoc = await transaction.get(loggedInUserRef);
+                    const viewedUserDoc = await transaction.get(viewedUserRef);
+
+                    if (!loggedInUserDoc.exists || !viewedUserDoc.exists) {
+                        throw "User documents not found!";
+                    }
+
+                    let loggedInUserFollowing = loggedInUserDoc.data().following || [];
+                    let viewedUserFollowers = viewedUserDoc.data().followers || [];
+
+                    if (loggedInUserFollowing.includes(currentViewingUserId)) {
+                        // Unfollow
+                        loggedInUserFollowing = loggedInUserFollowing.filter(id => id !== currentViewingUserId);
+                        viewedUserFollowers = viewedUserFollowers.filter(id => id !== loggedInUser.uid);
+                        followBtn.textContent = 'Follow';
+                        followBtn.classList.remove('unfollow');
+                        alert('Unfollowed!');
+                    } else {
+                        // Follow
+                        loggedInUserFollowing.push(currentViewingUserId);
+                        viewedUserFollowers.push(loggedInUser.uid);
+                        followBtn.textContent = 'Following';
+                        followBtn.classList.add('unfollow');
+                        alert('Followed!');
+                    }
+
+                    transaction.update(loggedInUserRef, { following: loggedInUserFollowing });
+                    transaction.update(viewedUserRef, { followers: viewedUserFollowers });
+                });
+                await loadUserProfile(currentViewingUserId); // Reload to update follower count
+            } catch (error) {
+                console.error("Error following/unfollowing:", error);
+                alert("Failed to update follow status. Please try again.");
+            }
+        }
+    </script>
+</body>
+</html>

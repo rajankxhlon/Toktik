@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: white;
+            margin: 0;
+            padding-top: 50px; /* For fixed header */
+            padding-bottom: 60px; /* For fixed footer */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .app-header {
+            height: 50px;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 101;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .notification-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .notification-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: #1a1a1a;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            position: relative; /* For positioning the button */
+        }
+        .notification-item.unread {
+            background-color: #2a2a2a; /* Slightly different background for unread */
+            border-left: 3px solid #007bff; /* Indicator for unread */
+            padding-left: 7px;
+        }
+        .notification-item img, .notification-item .profile-placeholder {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .notification-item .profile-placeholder {
+            background-color: #555;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .notification-content {
+            flex-grow: 1;
+            display: flex; /* Use flexbox for content and timestamp */
+            flex-direction: column;
+        }
+        .notification-text {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap; /* Allow text to wrap */
+        }
+        .notification-content .username {
+            font-weight: bold;
+            margin-right: 5px;
+            color: white; /* Ensure username is visible */
+        }
+        .notification-content .timestamp {
+            color: #aaa;
+            font-size: 0.8em;
+            margin-top: 2px; /* Space below text */
+        }
+        .notification-content strong {
+            color: #007bff; /* Highlight relevant text */
+            font-weight: normal; /* Make bold less prominent for comments if desired */
+        }
+        .notification-item .reel-thumbnail {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+        /* Style for Follow Back button */
+        .follow-back-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+            margin-left: auto; /* Push to the right */
+            flex-shrink: 0;
+        }
+        .follow-back-btn.followed {
+            background-color: #555;
+            cursor: default;
+        }
+        .follow-back-btn:not(.followed):hover {
+            background-color: #0056b3;
+        }
+
+        .footer-nav {
+            position: fixed;
+            bottom: 0;
+            height: 60px;
+            width: 100%;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #333;
+            z-index: 100;
+        }
+        .footer-nav a {
+            color: #ccc;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.8em;
+        }
+        .footer-nav a:hover, .footer-nav a.active {
+            color: #007bff;
+        }
+        .footer-nav i {
+            font-size: 1.5em;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">Activity</header>
+    <div class="main-content">
+        <div id="notificationList" class="notification-list">
+            <p style="text-align: center; color: #aaa;">No new activity.</p>
+        </div>
+    </div>
+
+    <div class="footer-nav">
+        <a href="home.html" class="nav-item" id="nav-home"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="search.html" class="nav-item" id="nav-search"><i class="fas fa-search"></i><span>Search</span></a>
+        <a href="create_reel.html" class="nav-item" id="nav-upload"><i class="fas fa-plus-square"></i><span>Create</span></a>
+        <a href="notification.html" class="nav-item active" id="nav-activity"><i class="fas fa-heart"></i><span>Activity</span></a>
+        <a href="profile.html" class="nav-item" id="nav-profile"><i class="fas fa-user"></i><span>Profile</span></a>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAM2RLdA9wnsy5Nxo29KH7gUsaV4hfbH3U",
+            authDomain: "timtom-54c39.firebaseapp.com",
+            projectId: "timtom-54c39",
+            storageBucket: "timtom-54c39.firebasestorage.app",
+            messagingSenderId: "981119735149",
+            appId: "1:981119735149:web:b94b2cea3496b7abb4b664",
+            measurementId: "G-WNNN6WP21T"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Define your Cloudinary Cloud Name here for thumbnail generation
+        const CLOUDINARY_CLOUD_NAME = "dhc49hdvk";
+
+        let currentUser = null;
+        const usersCache = {}; // Cache for user data to reduce Firestore reads
+        const reelsCache = {}; // Cache for reel data to reduce Firestore reads
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const notificationListDiv = document.getElementById('notificationList');
+
+            // Set active nav item
+            document.getElementById('nav-activity').classList.add('active');
+            document.getElementById('nav-home').classList.remove('active'); // Ensure home is not active
+
+            // Correct the create reel link in the footer navigation
+            document.getElementById('nav-upload').setAttribute('href', 'create_reel.html');
+
+
+            auth.onAuthStateChanged(async (user) => {
+                if (!user) {
+                    alert("Not logged in. Redirecting...");
+                    window.location.href = 'index.html';
+                } else {
+                    currentUser = user;
+                    loadNotifications();
+                }
+            });
+
+            async function getUserData(userId) {
+                if (usersCache[userId]) {
+                    return usersCache[userId];
+                }
+                const userDoc = await db.collection("users").doc(userId).get();
+                const userData = userDoc.exists ? userDoc.data() : null;
+                usersCache[userId] = userData;
+                return userData;
+            }
+
+            async function getReelData(reelId) {
+                if (reelsCache[reelId]) {
+                    return reelsCache[reelId];
+                }
+                const reelDoc = await db.collection("reels").doc(reelId).get();
+                const reelData = reelDoc.exists ? reelDoc.data() : null;
+                reelsCache[reelId] = reelData;
+                return reelData;
+            }
+
+            async function loadNotifications() {
+                notificationListDiv.innerHTML = '<p style="text-align: center; color: #aaa;">Loading notifications...</p>';
+                try {
+                    const notificationsRef = db.collection("notifications")
+                        .where("toUserId", "==", currentUser.uid)
+                        .orderBy("timestamp", "desc"); // Order by newest first
+
+                    // Use onSnapshot for real-time updates
+                    notificationsRef.onSnapshot(async (snapshot) => {
+                        if (snapshot.empty) {
+                            notificationListDiv.innerHTML = '<p style="text-align: center; color: #aaa;">No new activity.</p>';
+                            return;
+                        }
+
+                        notificationListDiv.innerHTML = ''; // Clear existing notifications
+
+                        for (const doc of snapshot.docs) {
+                            const notification = doc.data();
+                            const notificationId = doc.id;
+
+                            const fromUser = await getUserData(notification.fromUserId);
+                            const fromUsername = fromUser && fromUser.username ? fromUser.username : 'Unknown User';
+                            const fromUserProfilePic = fromUser && fromUser.profilePictureUrl ? fromUser.profilePictureUrl : ''; // Use profilePictureUrl
+                            const fromUserFirstLetter = fromUsername.charAt(0).toUpperCase();
+
+                            let notificationText = '';
+                            let thumbnailHtml = '';
+                            let actionButtonHtml = ''; // For "Follow Back"
+
+                            // Determine notification type and compose text
+                            switch (notification.type) {
+                                case "like":
+                                    notificationText = `<div class="notification-text"><span class="username">@${fromUsername}</span> liked your reel.</div>`;
+                                    if (notification.reelId) {
+                                        const reel = await getReelData(notification.reelId);
+                                        if (reel && reel.videoUrl) {
+                                            // Extract public ID for Cloudinary thumbnail
+                                            const parts = reel.videoUrl.split('/');
+                                            const uploadIndex = parts.indexOf('upload');
+                                            let publicId = '';
+                                            if (uploadIndex !== -1 && parts.length > uploadIndex + 1) {
+                                                publicId = parts.slice(uploadIndex + 1).join('/').split('.')[0];
+                                            }
+                                            const thumbnailUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/q_auto,f_auto,w_100,h_100,c_fill,pg_1/${publicId}.jpg`;
+                                            thumbnailHtml = `<img src="${thumbnailUrl}" onerror="this.onerror=null;this.src='https://via.placeholder.com/50?text=Reel';" alt="Reel Thumbnail" class="reel-thumbnail">`;
+                                        }
+                                    }
+                                    break;
+                                case "comment":
+                                    notificationText = `<div class="notification-text"><span class="username">@${fromUsername}</span> commented on your reel: "<strong>${notification.commentText}</strong>"</div>`;
+                                    if (notification.reelId) {
+                                        const reel = await getReelData(notification.reelId);
+                                        if (reel && reel.videoUrl) {
+                                            const parts = reel.videoUrl.split('/');
+                                            const uploadIndex = parts.indexOf('upload');
+                                            let publicId = '';
+                                            if (uploadIndex !== -1 && parts.length > uploadIndex + 1) {
+                                                publicId = parts.slice(uploadIndex + 1).join('/').split('.')[0];
+                                            }
+                                            const thumbnailUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/q_auto,f_auto,w_100,h_100,c_fill,pg_1/${publicId}.jpg`;
+                                            thumbnailHtml = `<img src="${thumbnailUrl}" onerror="this.onerror=null;this.src='https://via.placeholder.com/50?text=Reel';" alt="Reel Thumbnail" class="reel-thumbnail">`;
+                                        }
+                                    }
+                                    break;
+                                case "follow":
+                                    notificationText = `<div class="notification-text"><span class="username">@${fromUsername}</span> started following you.</div>`;
+                                    // Check if current user is already following 'fromUser'
+                                    const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+                                    const currentUserFollowing = currentUserDoc.exists && currentUserDoc.data().following ? currentUserDoc.data().following : [];
+                                    const isFollowingBack = currentUserFollowing.includes(notification.fromUserId);
+
+                                    if (!isFollowingBack) {
+                                        actionButtonHtml = `<button class="follow-back-btn" data-from-user-id="${notification.fromUserId}">Follow Back</button>`;
+                                    } else {
+                                        actionButtonHtml = `<button class="follow-back-btn followed" disabled>Following</button>`;
+                                    }
+                                    break;
+                                case "comment_like":
+                                    notificationText = `<div class="notification-text"><span class="username">@${fromUsername}</span> liked your comment: "<strong>${notification.commentText}</strong>"</div>`;
+                                    if (notification.reelId) {
+                                        const reel = await getReelData(notification.reelId);
+                                        if (reel && reel.videoUrl) {
+                                            const parts = reel.videoUrl.split('/');
+                                            const uploadIndex = parts.indexOf('upload');
+                                            let publicId = '';
+                                            if (uploadIndex !== -1 && parts.length > uploadIndex + 1) {
+                                                publicId = parts.slice(uploadIndex + 1).join('/').split('.')[0];
+                                            }
+                                            const thumbnailUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/q_auto,f_auto,w_100,h_100,c_fill,pg_1/${publicId}.jpg`;
+                                            thumbnailHtml = `<img src="${thumbnailUrl}" onerror="this.onerror=null;this.src='https://via.placeholder.com/50?text=Reel';" alt="Reel Thumbnail" class="reel-thumbnail">`;
+                                        }
+                                    }
+                                    break;
+                                default:
+                                    notificationText = `<div class="notification-text">New activity from <span class="username">@${fromUsername}</span>.</div>`;
+                                    break;
+                            }
+
+                            const profilePicOrPlaceholder = fromUserProfilePic
+                                ? `<img src="${fromUserProfilePic}" alt="Profile" class="profile-placeholder">`
+                                : `<div class="profile-placeholder">${fromUserFirstLetter}</div>`;
+
+                            const notificationItem = document.createElement('div');
+                            notificationItem.className = `notification-item ${notification.read ? '' : 'unread'}`;
+                            notificationItem.dataset.notificationId = notificationId;
+
+                            // Add dataset for linking if needed
+                            if (notification.type === 'like' || notification.type === 'comment' || notification.type === 'comment_like') {
+                                notificationItem.dataset.reelId = notification.reelId;
+                            }
+                            if (notification.type === 'follow') {
+                                notificationItem.dataset.fromUserId = notification.fromUserId;
+                            }
+
+                            notificationItem.innerHTML = `
+                                ${profilePicOrPlaceholder}
+                                <div class="notification-content">
+                                    ${notificationText}
+                                    <span class="timestamp">${formatTimestamp(notification.timestamp)}</span>
+                                </div>
+                                ${actionButtonHtml} ${thumbnailHtml}
+                            `;
+                            notificationListDiv.appendChild(notificationItem);
+
+                            // Event listener for marking as read
+                            notificationItem.addEventListener('click', async (e) => {
+                                // Prevent click from propagating if a button inside was clicked
+                                if (e.target.tagName === 'BUTTON') {
+                                    return;
+                                }
+                                if (!notification.read) {
+                                    await db.collection("notifications").doc(notificationId).update({ read: true });
+                                    notificationItem.classList.remove('unread');
+                                }
+                                // Optional: Add logic to navigate to the reel or user's profile
+                                if (notificationItem.dataset.reelId) {
+                                    window.location.href = `home.html?reelId=${notificationItem.dataset.reelId}`;
+                                } else if (notificationItem.dataset.fromUserId && notification.type === 'follow') {
+                                    window.location.href = `profile.html?userId=${notificationItem.dataset.fromUserId}`;
+                                }
+                            });
+
+                            // Event listener for Follow Back button
+                            const followBackBtn = notificationItem.querySelector('.follow-back-btn');
+                            if (followBackBtn && !followBackBtn.classList.contains('followed')) {
+                                followBackBtn.addEventListener('click', async () => {
+                                    const targetUserId = followBackBtn.dataset.fromUserId;
+                                    if (targetUserId && currentUser.uid) {
+                                        await toggleFollow(currentUser.uid, targetUserId, followBackBtn);
+                                    }
+                                });
+                            }
+                        }
+                    }, (error) => {
+                        console.error("Error listening to notifications:", error);
+                        notificationListDiv.innerHTML = '<p style="text-align: center; color: red;">Failed to load notifications in real-time.</p>';
+                    });
+
+                } catch (error) {
+                    console.error("Error loading notifications:", error);
+                    notificationListDiv.innerHTML = '<p style="text-align: center; color: red;">Failed to load notifications.</p>';
+                }
+            }
+
+            async function toggleFollow(currentUserId, targetUserId, buttonElement) {
+                if (currentUserId === targetUserId) {
+                    alert("You cannot follow yourself!");
+                    return;
+                }
+
+                try {
+                    const currentUserRef = db.collection('users').doc(currentUserId);
+                    const targetUserRef = db.collection('users').doc(targetUserId);
+
+                    await db.runTransaction(async (transaction) => {
+                        const currentUserDoc = await transaction.get(currentUserRef);
+                        const targetUserDoc = await transaction.get(targetUserRef);
+
+                        if (!currentUserDoc.exists || !targetUserDoc.exists) {
+                            throw "User documents not found!";
+                        }
+
+                        let currentUserFollowing = currentUserDoc.data().following || [];
+                        let targetUserFollowers = targetUserDoc.data().followers || [];
+
+                        const isCurrentlyFollowing = currentUserFollowing.includes(targetUserId);
+
+                        if (!isCurrentlyFollowing) {
+                            // Follow action
+                            currentUserFollowing.push(targetUserId);
+                            targetUserFollowers.push(currentUserId);
+
+                            transaction.update(currentUserRef, { following: currentUserFollowing });
+                            transaction.update(targetUserRef, { followers: targetUserFollowers });
+
+                            // Update button state
+                            if (buttonElement) {
+                                buttonElement.textContent = 'Following';
+                                buttonElement.classList.add('followed');
+                                buttonElement.disabled = true;
+                            }
+
+                            // Optional: Create a notification for the person who was followed
+                            // (this specific notification is for when A follows B, B gets a notification)
+                            // This already happens when someone follows you, so no new notification needed here.
+                            // The "Follow Back" action implies you're now following them.
+
+                        } else {
+                            // Unfollow action (shouldn't happen on "Follow Back" button)
+                            console.warn("Attempted to unfollow using a 'Follow Back' button.");
+                        }
+                    });
+                } catch (error) {
+                    console.error("Error toggling follow status:", error);
+                    alert("Failed to perform follow action. Please try again.");
+                }
+            }
+
+
+            function formatTimestamp(timestamp) {
+                if (!timestamp) return '';
+                const date = timestamp.toDate(); // Convert Firestore Timestamp to JavaScript Date
+                const now = new Date();
+                const diff = now.getTime() - date.getTime(); // Difference in milliseconds
+
+                const seconds = Math.floor(diff / 1000);
+                const minutes = Math.floor(seconds / 60);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+                const months = Math.floor(days / 30);
+                const years = Math.floor(days / 365);
+
+                if (seconds < 60) {
+                    return seconds === 0 ? 'just now' : `${seconds}s ago`;
+                } else if (minutes < 60) {
+                    return `${minutes}m ago`;
+                } else if (hours < 24) {
+                    return `${hours}h ago`;
+                } else if (days < 30) {
+                    return `${days}d ago`;
+                } else if (months < 12) {
+                    return `${months}mo ago`;
+                } else {
+                    return `${years}y ago`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

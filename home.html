@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reels App</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background-color: #000;
+      color: white;
+    }
+    #app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: relative;
+    }
+    .app-header {
+      height: 50px;
+      background-color: #1a1a1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-bottom: 1px solid #333;
+      font-weight: bold;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 101;
+      padding: 0 15px;
+      box-sizing: border-box;
+    }
+    .app-header .header-title {
+        flex-grow: 1;
+        text-align: center;
+    }
+
+    /* New styles for header tabs */
+    .header-tabs {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        gap: 20px; /* Space between tabs */
+    }
+    .header-tab {
+        color: #ccc;
+        text-decoration: none;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 1em;
+        position: relative;
+    }
+    .header-tab.active {
+        color: white;
+        font-weight: bold;
+    }
+    .header-tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: #007bff;
+    }
+
+    #reels-feed {
+      flex-grow: 1;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+      scroll-padding-top: 50px;
+      padding-top: 50px;
+      padding-bottom: 60px;
+      box-sizing: border-box;
+    }
+    .reel-item {
+      scroll-snap-align: start;
+      height: calc(100vh - 50px - 60px);
+      width: 100vw;
+      position: relative;
+      background: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    .reel-item video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .reel-overlay {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      padding: 0 15px;
+      box-sizing: border-box;
+      background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    }
+    .reel-username-line {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .reel-username {
+      margin-right: 5px;
+    }
+    .follow-button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.8em;
+      margin-left: 10px;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    .follow-button.following {
+      background-color: #555;
+      color: #ccc;
+    }
+    .follow-button.following:hover {
+        background-color: #666;
+        color: white;
+    }
+    .follow-button:hover:not(.following) {
+        background-color: #0056b3;
+    }
+
+    .profile-pic-container {
+      position: absolute;
+      right: 15px;
+      bottom: 350px; /* Adjusted: Moved higher */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 20;
+    }
+    .profile-pic {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #555;
+      object-fit: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2em;
+      font-weight: bold;
+      color: white;
+      text-transform: uppercase;
+      border: 2px solid white;
+      margin-bottom: 10px;
+    }
+    .profile-pic.placeholder {
+        background-color: #555;
+        border: 2px solid white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.2em;
+        font-weight: bold;
+        color: white;
+        text-transform: uppercase;
+    }
+    .verified-tick {
+      color: #007bff;
+      font-size: 0.8em;
+      margin-right: 5px;
+    }
+    .mute-indicator {
+      position: absolute;
+      top: 70px;
+      right: 20px;
+      background-color: rgba(0,0,0,0.5);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2em;
+      z-index: 15;
+      cursor: pointer;
+      transition: opacity 0.3s ease;
+    }
+    .mute-indicator.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .footer-nav {
+      position: fixed;
+      bottom: 0;
+      height: 60px;
+      width: 100%;
+      background-color: #1a1a1a;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      border-top: 1px solid #333;
+      z-index: 100;
+    }
+    .footer-nav a {
+      color: #ccc;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 0.8em;
+    }
+    .footer-nav a:hover, .footer-nav a.active {
+      color: #007bff;
+    }
+    .footer-nav i {
+      font-size: 1.5em;
+      margin-bottom: 4px;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .reel-actions {
+      position: absolute;
+      right: 15px;
+      bottom: 110px; /* This remains the same as previously adjusted */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      z-index: 20;
+    }
+    .reel-action-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+    }
+    .reel-action-item i {
+      font-size: 2.2em;
+      margin-bottom: 5px;
+    }
+    .reel-action-item i.liked {
+      color: red;
+    }
+    .reel-action-item span {
+      font-size: 0.9em;
+    }
+
+    /* Styles for the comments modal */
+    .comments-modal {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 70%;
+      background-color: #1a1a1a;
+      border-top-left-radius: 15px;
+      border-top-right-radius: 15px;
+      transform: translateY(100%);
+      transition: transform 0.3s ease-out;
+      z-index: 102;
+      display: flex;
+      flex-direction: column;
+      padding: 15px;
+      box-sizing: border-box;
+    }
+    .comments-modal.show {
+      transform: translateY(0);
+    }
+    .comments-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #333;
+      margin-bottom: 10px;
+    }
+    .comments-header h3 {
+      margin: 0;
+      font-size: 1.1em;
+    }
+    .comments-header .close-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5em;
+      cursor: pointer;
+    }
+    .comments-list {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding-right: 5px;
+    }
+    .comment-item {
+      display: flex;
+      margin-bottom: 15px;
+      align-items: flex-start;
+      position: relative;
+    }
+    .comment-user-pic {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: #555;
+      object-fit: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 0.8em;
+      font-weight: bold;
+      color: white;
+      text-transform: uppercase;
+      border: 1px solid white;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    .comment-user-pic.placeholder {
+      background-color: #555;
+      border: 1px solid white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 0.8em;
+      font-weight: bold;
+      color: white;
+      text-transform: uppercase;
+    }
+    .comment-content {
+      flex-grow: 1;
+    }
+    .comment-username {
+      font-weight: bold;
+      margin-right: 5px;
+      font-size: 0.9em;
+      display: flex; /* To align verified tick with username */
+      align-items: center;
+    }
+    .comment-text {
+      font-size: 0.9em;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+    .comment-actions {
+      display: flex;
+      align-items: center;
+      font-size: 0.7em;
+      color: #aaa;
+      margin-top: 5px;
+    }
+    .comment-actions span {
+      margin-right: 10px;
+    }
+    .comment-actions .like-comment-btn {
+        cursor: pointer;
+        margin-right: 5px;
+        color: #aaa;
+    }
+    .comment-actions .like-comment-btn.liked {
+        color: red;
+    }
+    .comment-actions .like-count {
+        margin-right: 10px;
+        font-size: 0.8em;
+    }
+    /* Verified tick for comments */
+    .comment-username .verified-tick {
+        font-size: 0.7em; /* Slightly smaller for comments */
+        margin-left: 3px;
+        margin-right: 0;
+    }
+
+    /* New styles for in-modal comment input */
+    .comment-input-area {
+      padding: 15px;
+      border-top: 1px solid #333;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      box-sizing: border-box;
+      width: 100%; /* Ensure it takes full width initially */
+      max-width: 95%; /* Limit the maximum width for better mobile fit */
+      margin: 0 auto; /* Center the box horizontally */
+    }
+    .comment-input-area input {
+      flex-grow: 1;
+      padding: 10px 15px;
+      border: 1px solid #444;
+      background-color: #2a2a2a;
+      color: white;
+      outline: none;
+      border-radius: 20px; /* Pill shape */
+      font-size: 0.95em;
+      box-sizing: border-box;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      min-width: 0; /* Allow input to shrink appropriately */
+    }
+    .comment-input-area input:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3);
+    }
+    .comment-input-area #postCommentBtn {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px; /* Slightly reduce padding for button to fit */
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.9em;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+      flex-shrink: 0; /* Prevent button from shrinking */
+    }
+    .comment-input-area #postCommentBtn:hover {
+      background-color: #0056b3;
+      transform: translateY(-1px);
+    }
+    .comment-input-area #postCommentBtn:active {
+      transform: translateY(0);
+    }
+
+
+    /* Three Dots Menu for comments and reels */
+    .options-container {
+        position: relative;
+        display: inline-block;
+    }
+    .options-btn {
+        background: none;
+        border: none;
+        color: #aaa;
+        font-size: 1.2em;
+        cursor: pointer;
+        padding: 5px;
+    }
+    /* Reel options menu specific styling */
+    .reel-options-menu {
+        position: absolute;
+        bottom: 50px; /* Adjust as needed to be above the button */
+        right: 0;
+        background-color: #333;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        z-index: 20;
+        min-width: 120px;
+        display: none;
+        flex-direction: column; /* To stack buttons vertically */
+    }
+    .reel-options-menu.show {
+        display: flex; /* Changed from block to flex */
+    }
+    .reel-options-menu button {
+        background: none;
+        border: none;
+        color: white;
+        padding: 8px 12px;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        font-size: 0.9em;
+    }
+    .reel-options-menu button:hover {
+        background-color: #555;
+    }
+
+    /* Comment options menu */
+    .comment-options {
+        position: relative;
+        display: inline-block;
+        margin-left: auto; /* Push to the right */
+    }
+    .comment-options-menu {
+        position: absolute;
+        top: 25px;
+        right: 0;
+        background-color: #333;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        z-index: 10;
+        min-width: 100px;
+        display: none;
+    }
+    .comment-options-menu.show {
+        display: block;
+    }
+    .comment-options-menu button {
+        background: none;
+        border: none;
+        color: white;
+        padding: 8px 12px;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        font-size: 0.9em;
+    }
+    .comment-options-menu button:hover {
+        background-color: #555;
+    }
+
+    /* New styles for the rotating disk */
+    .rotating-disk-container {
+        position: absolute;
+        right: 15px;
+        bottom: 50px; /* This remains the same as previously adjusted */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 20;
+    }
+
+    .rotating-disk {
+        width: 45px; /* Slightly larger than profile pic */
+        height: 45px;
+        border-radius: 50%;
+        background-color: #333; /* Disk background */
+        border: 5px solid #555; /* Simulate record grooves */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        animation: rotateDisk 3s linear infinite; /* Animation for rotation */
+        position: relative;
+    }
+
+    .rotating-disk img {
+        width: 25px; /* Profile picture size inside disk */
+        height: 25px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid white; /* Border for the profile pic inside the disk */
+    }
+
+    .rotating-disk .placeholder {
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        background-color: #777;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.7em;
+        font-weight: bold;
+        color: white;
+        text-transform: uppercase;
+        border: 1px solid white;
+    }
+
+    @keyframes rotateDisk {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    /* Styles for view count on home.html */
+    .views-count-display {
+      position: absolute;
+      bottom: 18px; /* Above the overlay */
+      left: 15px;
+      color: white;
+      font-size: 0.9em;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      z-index: 21; /* Above overlay */
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+    }
+  </style>
+</head>
+<body>
+  <div id="app-container">
+    <header class="app-header">
+      <div class="header-tabs">
+        <span class="header-tab active" id="tab-for-you">For You</span>
+        <span class="header-tab" id="tab-following">Following</span>
+      </div>
+    </header>
+    <div id="reels-feed">
+      <p style="text-align: center; padding-top: 50vh; transform: translateY(-50%);">Loading reels...</p>
+    </div>
+    <div class="footer-nav">
+      <a href="#" class="nav-item active" id="nav-home"><i class="fas fa-home"></i><span>Home</span></a>
+      <a href="search.html" class="nav-item" id="nav-search"><i class="fas fa-search"></i><span>Search</span></a>
+      <a href="create_reel.html" class="nav-item" id="nav-upload"><i class="fas fa-plus-square"></i><span>Create</span></a>
+      <a href="notification.html" class="nav-item" id="nav-activity"><i class="fas fa-heart"></i><span>Activity</span></a>
+      <a href="profile.html" class="nav-item" id="nav-profile"><i class="fas fa-user"></i><span>Profile</span></a>
+    </div>
+
+    <div id="commentsModal" class="comments-modal">
+      <div class="comments-header">
+        <h3>Comments</h3>
+        <button class="close-btn" id="closeCommentsModal">&times;</button>
+      </div>
+      <div class="comments-list" id="commentsList">
+      </div>
+      <div class="comment-input-area">
+        <input type="text" id="commentInput" placeholder="Add a comment...">
+        <button id="postCommentBtn">Post</button>
+      </div>
+    </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+
+
+  <script>
+     const firebaseConfig = {
+  apiKey: "AIzaSyAM2RLdA9wnsy5Nxo29KH7gUsaV4hfbH3U",
+  authDomain: "timtom-54c39.firebaseapp.com",
+  projectId: "timtom-54c39",
+  storageBucket: "timtom-54c39.firebasestorage.app",
+  messagingSenderId: "981119735149",
+  appId: "1:981119735149:web:b94b2cea3496b7abb4b664",
+  measurementId: "G-WNNN6WP21T"
+};
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    const CLOUDINARY_CLOUD_NAME = "dhc49hdvk";
+
+    let globalMuteState = true;
+    let currentPlayingVideo = null;
+    let currentMuteIndicator = null;
+    let currentUser = null;
+    let currentReelIdForComments = null;
+    let currentView = 'for-you'; // Default view
+    let currentUserFollowing = []; // Initialize as empty array, will be populated on login
+
+    // Cache for user data to reduce Firestore reads
+    const usersCache = {};
+
+    // Keep track of viewed reels in the current session to avoid multiple increments for the same reel
+    const viewedReelsInSession = new Set(); 
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const reelsFeed = document.getElementById('reels-feed');
+      const commentsModal = document.getElementById('commentsModal');
+      const closeCommentsModalBtn = document.getElementById('closeCommentsModal');
+      const commentsList = document.getElementById('commentsList');
+      
+      // NEW: Direct comment input and post button
+      const commentInput = document.getElementById('commentInput');
+      const postCommentBtn = document.getElementById('postCommentBtn');
+
+      const tabForYou = document.getElementById('tab-for-you');
+      const tabFollowing = document.getElementById('tab-following');
+
+      auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+          alert("Not logged in. Redirecting...");
+          window.location.href = 'index.html';
+        } else {
+          currentUser = user;
+          const userDoc = await db.collection("users").doc(user.uid).get();
+          window.currentUserUsername = userDoc.exists ? userDoc.data().username : user.email.split('@')[0];
+          window.currentUserProfilePic = userDoc.exists && userDoc.data().profilePictureUrl ? userDoc.data().profilePictureUrl : '';
+          window.currentUserIsVerified = userDoc.exists && userDoc.data().isVerified === true;
+          // Populate currentUserFollowing from userDoc
+          currentUserFollowing = userDoc.exists && userDoc.data().following ? userDoc.data().following : [];
+          
+          // Check for reelId in URL parameter when page loads
+          const urlParams = new URLSearchParams(window.location.search);
+          const reelIdToPlay = urlParams.get('reelId');
+
+          if (reelIdToPlay) {
+              await loadSpecificReelAndOthers(reelIdToPlay);
+              // Clear the URL parameter after loading
+              history.replaceState(null, '', window.location.pathname);
+          } else {
+              loadReels(currentView);
+          }
+        }
+      });
+
+      tabForYou.addEventListener('click', () => {
+        if (currentView !== 'for-you') {
+          tabForYou.classList.add('active');
+          tabFollowing.classList.remove('active');
+          currentView = 'for-you';
+          loadReels(currentView);
+        }
+      });
+
+      tabFollowing.addEventListener('click', () => {
+        if (currentView !== 'following') {
+          tabFollowing.classList.add('active');
+          tabForYou.classList.remove('active');
+          currentView = 'following';
+          loadReels(currentView);
+        }
+      });
+
+
+      async function getUserData(userId) {
+        if (usersCache[userId]) {
+          return usersCache[userId];
+        }
+        const userDoc = await db.collection("users").doc(userId).get();
+        const userData = userDoc.exists ? userDoc.data() : null;
+        usersCache[userId] = userData;
+        return userData;
+      }
+
+      async function incrementReelViewCount(reelId) {
+          if (!reelId || viewedReelsInSession.has(reelId)) {
+              // Only increment if reelId exists and it hasn't been viewed in this session yet
+              return;
+          }
+          const reelRef = db.collection('reels').doc(reelId);
+          try {
+              await reelRef.update({
+                  viewsCount: firebase.firestore.FieldValue.increment(1)
+              });
+              viewedReelsInSession.add(reelId); // Mark as viewed in this session
+              console.log(`Views count incremented for reel: ${reelId}`);
+          } catch (error) {
+              console.error("Error incrementing views count:", error);
+          }
+      }
+
+      async function loadReels(view) {
+        reelsFeed.innerHTML = '<p style="text-align:center; padding-top:50vh; transform:translateY(-50%);">Loading reels...</p>';
+        
+        let query;
+        if (view === 'for-you') {
+          query = db.collection("reels").orderBy("timestamp", "desc");
+        } else if (view === 'following') {
+          if (!currentUser || currentUserFollowing.length === 0) {
+            reelsFeed.innerHTML = `<p style="text-align:center; padding-top:50vh; transform:translateY(-50%);">You are not following anyone yet. Explore "For You" to find new creators!</p>`;
+            return;
+          }
+          // Query for reels from users the current user is following
+          query = db.collection("reels").where("userId", "in", currentUserFollowing).orderBy("timestamp", "desc");
+        }
+
+        const snapshot = await query.get();
+        let reelsDocs = snapshot.docs;
+
+        if (view === 'for-you') {
+            // Shuffle reels for a "For You" like experience
+            for (let i = reelsDocs.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [reelsDocs[i], reelsDocs[j]] = [reelsDocs[j], reelsDocs[i]];
+            }
+        }
+        
+        reelsFeed.innerHTML = '';
+        await renderReels(reelsDocs);
+      }
+
+      async function loadSpecificReelAndOthers(targetReelId) {
+          reelsFeed.innerHTML = '<p style="text-align:center; padding-top:50vh; transform:translateY(-50%);">Loading specific reel...</p>';
+          
+          let reelsDocs = [];
+          let targetReelDoc = null;
+
+          // Fetch the specific reel first
+          const specificReelSnapshot = await db.collection("reels").doc(targetReelId).get();
+          if (specificReelSnapshot.exists) {
+              targetReelDoc = specificReelSnapshot;
+          }
+
+          // Fetch all other reels (for 'for-you' logic, or all if not following)
+          let allReelsQuery = db.collection("reels").orderBy("timestamp", "desc");
+          if (currentView === 'following' && currentUserFollowing.length > 0) {
+              allReelsQuery = db.collection("reels").where("userId", "in", currentUserFollowing).orderBy("timestamp", "desc");
+          }
+          const allReelsSnapshot = await allReelsQuery.get();
+          
+          // Filter out the target reel from the main list if it was found
+          const otherReelsDocs = allReelsSnapshot.docs.filter(doc => doc.id !== targetReelId);
+
+          if (currentView === 'for-you') {
+              // Shuffle other reels only for 'for-you'
+              for (let i = otherReelsDocs.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [otherReelsDocs[i], otherReelsDocs[j]] = [otherReelsDocs[j], otherReels[i]];
+              }
+          }
+
+          // Combine the target reel (if found) with the shuffled others
+          if (targetReelDoc) {
+              reelsDocs = [targetReelDoc, ...otherReelsDocs];
+          } else {
+              reelsDocs = otherReelsDocs; // If target reel not found, just show others
+          }
+
+          reelsFeed.innerHTML = '';
+          await renderReels(reelsDocs, targetReelId);
+      }
+
+
+      async function renderReels(reelsDocs, initialReelId = null) {
+        if (reelsDocs.length === 0) {
+            reelsFeed.innerHTML = `<p style="text-align:center; padding-top:50vh; transform:translateY(-50%);">No reels to display for this section. Check back later!</p>`;
+            return;
+        }
+
+        let initialScrollDone = false; // Flag to ensure scroll only happens once
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              const video = entry.target.querySelector('video');
+              const indicator = entry.target.querySelector('.mute-indicator');
+              const reelId = entry.target.dataset.reelId; // Get reelId from dataset
+
+              if (entry.isIntersecting) {
+                video.muted = globalMuteState;
+                video.currentTime = 0;
+                video.play().catch(() => {});
+                currentPlayingVideo = video;
+                currentMuteIndicator = indicator;
+                indicator.classList.toggle('hidden', !globalMuteState);
+                indicator.innerHTML = `<i class="fas ${globalMuteState ? 'fa-volume-mute' : 'fa-volume-up'}"></i>`;
+                
+                // Increment view count when a reel starts playing
+                incrementReelViewCount(reelId);
+
+                // If an initial reel was specified and we haven't scrolled to it yet
+                if (initialReelId && !initialScrollDone && reelId === initialReelId) {
+                    video.scrollIntoView({ behavior: 'auto', block: 'start' });
+                    initialScrollDone = true;
+                }
+
+              } else {
+                video.pause();
+                indicator.classList.add('hidden');
+              }
+            });
+          }, { threshold: 0.8 });
+
+          for (const doc of reelsDocs) { // Use the (potentially filtered/shuffled) reelsDocs
+            const data = doc.data();
+            const reel = document.createElement('div');
+            reel.className = 'reel-item';
+            reel.dataset.reelId = doc.id; // Store reel ID on the element
+
+            const uploaderUserId = data.userId;
+            const uploaderData = await getUserData(uploaderUserId);
+            
+            const uploaderUsername = uploaderData && uploaderData.username ? uploaderData.username : data.username || 'User';
+            const uploaderProfilePic = uploaderData && uploaderData.profilePictureUrl ? uploaderData.profilePictureUrl : '';
+            const uploaderIsVerified = uploaderData && uploaderData.isVerified === true;
+
+            const usernameFirstLetter = uploaderUsername ? uploaderUsername.charAt(0).toUpperCase() : '?';
+            
+            const profilePicHtml = uploaderProfilePic
+              ? `<img src="${uploaderProfilePic}" alt="Profile" class="profile-pic">`
+              : `<div class="profile-pic placeholder">${usernameFirstLetter}</div>`;
+            
+            const verifiedTickHtml = uploaderIsVerified ? '<i class="fas fa-check-circle verified-tick"></i>' : '';
+
+            // Determine if current user follows this uploader
+            const isFollowing = currentUser && currentUser.uid !== uploaderUserId && currentUserFollowing.includes(uploaderUserId);
+            const followButtonText = isFollowing ? 'Following' : 'Follow';
+            const followButtonClass = isFollowing ? 'following' : '';
+            const followButtonHtml = currentUser && currentUser.uid !== uploaderUserId ? 
+                `<button class="follow-button ${followButtonClass}" data-user-id="${uploaderUserId}">${followButtonText}</button>` : '';
+
+
+            const likedByCurrentUser = currentUser && data.likes && data.likes.includes(currentUser.uid);
+            const likeIconClass = likedByCurrentUser ? 'fas fa-heart liked' : 'far fa-heart';
+            const likeCount = data.likes ? data.likes.length : 0;
+
+            const commentsSnapshot = await db.collection("reels").doc(doc.id).collection("comments").get();
+            const commentCount = commentsSnapshot.size;
+
+            const isReelOwner = currentUser && data.userId === currentUser.uid;
+
+            // Build reel options menu content dynamically
+            let reelOptionsMenuContent = '';
+            if (currentUser && currentUser.uid !== uploaderUserId && isFollowing) { // Unfollow option for others you follow
+                reelOptionsMenuContent += `<button class="unfollow-reel-btn" data-user-id="${uploaderUserId}">Unfollow</button>`;
+            }
+            if (isReelOwner) { // Delete option for your own reels
+                reelOptionsMenuContent += `<button class="delete-reel-btn" data-reel-id="${doc.id}" data-video-url="${data.videoUrl}">Delete Reel</button>`;
+            }
+
+            const reelOptionsMenuHtml = `
+                <div class="options-container">
+                    <button class="options-btn reel-options-btn"><i class="fas fa-ellipsis-h"></i></button>
+                    <div class="reel-options-menu">
+                        ${reelOptionsMenuContent}
+                    </div>
+                </div>
+            `;
+
+            // New HTML for the rotating disk
+            const rotatingDiskHtml = `
+                <div class="rotating-disk-container">
+                    <div class="rotating-disk">
+                        ${uploaderProfilePic ? `<img src="${uploaderProfilePic}" alt="Audio source" />` : `<div class="placeholder">${usernameFirstLetter}</div>`}
+                    </div>
+                </div>
+            `;
+
+            const viewsCount = data.viewsCount || 0; // Get viewsCount from data, default to 0
+
+            reel.innerHTML = `
+              <video loop playsinline preload="metadata" ${globalMuteState ? 'muted' : ''}>
+                <source src="${data.videoUrl}" type="video/mp4" />
+              </video>
+              <div class="mute-indicator ${globalMuteState ? '' : 'hidden'}"><i class="fas fa-volume-mute"></i></div>
+              <div class="reel-overlay">
+                <div class="reel-username-line">
+                  <span class="reel-username">@${uploaderUsername}</span>
+                  ${verifiedTickHtml}
+                  ${followButtonHtml}
+                </div>
+                <p class="reel-caption">${data.caption || ''}</p>
+              </div>
+              <div class="profile-pic-container">
+                ${profilePicHtml}
+              </div>
+              <div class="reel-actions">
+                <div class="reel-action-item like-button" data-reel-id="${doc.id}">
+                  <i class="${likeIconClass}"></i>
+                  <span class="like-count">${likeCount}</span>
+                </div>
+                <div class="reel-action-item comment-button" data-reel-id="${doc.id}">
+                  <i class="fas fa-comment"></i>
+                  <span>${commentCount}</span>
+                </div>
+                <div class="reel-action-item">
+                    ${reelOptionsMenuHtml}
+                </div>
+              </div>
+              ${rotatingDiskHtml}
+              <div class="views-count-display">
+                  <i class="fas fa-eye"></i> ${viewsCount} views
+              </div>
+            `;
+
+            const videoElement = reel.querySelector('video');
+            videoElement.addEventListener('click', () => {
+              globalMuteState = !globalMuteState;
+              document.querySelectorAll('video').forEach(v => v.muted = globalMuteState);
+              document.querySelectorAll('.mute-indicator').forEach(ind => {
+                ind.classList.toggle('hidden', !globalMuteState);
+                ind.innerHTML = `<i class="fas ${globalMuteState ? 'fa-volume-mute' : 'fa-volume-up'}"></i>`;
+              });
+            });
+
+            // Follow Button Listener (direct button)
+            const reelFollowButton = reel.querySelector('.follow-button');
+            if (reelFollowButton) {
+                reelFollowButton.addEventListener('click', async (e) => {
+                    const targetUserId = e.target.dataset.userId;
+                    await toggleFollow(targetUserId, reelFollowButton);
+                });
+            }
+
+            const likeButton = reel.querySelector('.like-button');
+            likeButton.addEventListener('click', async () => {
+              if (!currentUser) {
+                alert("Please log in to like reels.");
+                return;
+              }
+              const reelId = likeButton.dataset.reelId;
+              const reelRef = db.collection("reels").doc(reelId);
+
+              try {
+                const reelDoc = await reelRef.get();
+                if (reelDoc.exists) {
+                  const currentLikes = reelDoc.data().likes || [];
+                  const likeIcon = likeButton.querySelector('i');
+                  const likeCountSpan = likeButton.querySelector('.like-count');
+
+                  if (currentLikes.includes(currentUser.uid)) {
+                    await reelRef.update({
+                      likes: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+                    });
+                    likeIcon.classList.remove('liked');
+                    likeIcon.classList.add('far');
+                    likeCountSpan.textContent = currentLikes.length - 1;
+                  } else {
+                    await reelRef.update({
+                      likes: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+                    });
+                    likeIcon.classList.add('liked');
+                    likeIcon.classList.remove('far');
+                    likeIcon.classList.add('fas');
+                    likeCountSpan.textContent = currentLikes.length + 1;
+
+                    if (currentUser.uid !== uploaderUserId) {
+                      await db.collection("notifications").add({
+                        type: "like",
+                        fromUserId: currentUser.uid,
+                        toUserId: uploaderUserId,
+                        reelId: reelId,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        read: false
+                      });
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error("Error updating like:", error);
+              }
+            });
+
+            reel.querySelector('.comment-button').addEventListener('click', (event) => {
+              if (!currentUser) {
+                alert("Please log in to view or post comments.");
+                return;
+              }
+              currentReelIdForComments = event.currentTarget.dataset.reelId;
+              openCommentsModal(currentReelIdForComments);
+            });
+
+            // Always add listener for reel options button now
+            const reelOptionsBtn = reel.querySelector('.reel-options-btn');
+            const reelOptionsMenu = reel.querySelector('.reel-options-menu');
+            
+            if (reelOptionsBtn && reelOptionsMenu) { // Ensure they exist
+                reelOptionsBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    document.querySelectorAll('.reel-options-menu').forEach(menu => {
+                        if (menu !== reelOptionsMenu) menu.classList.remove('show');
+                    });
+                    reelOptionsMenu.classList.toggle('show');
+                });
+
+                // Add listener for delete button if it exists in this menu
+                const deleteBtn = reelOptionsMenu.querySelector('.delete-reel-btn');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const reelIdToDelete = e.currentTarget.dataset.reelId;
+                        const videoUrlToDelete = e.currentTarget.dataset.videoUrl;
+                        deleteReel(reelIdToDelete, videoUrlToDelete);
+                        reelOptionsMenu.classList.remove('show'); // Hide menu after action
+                    });
+                }
+                
+                // Add listener for unfollow button if it exists in this menu
+                const unfollowBtn = reelOptionsMenu.querySelector('.unfollow-reel-btn');
+                if (unfollowBtn) {
+                    unfollowBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const targetUserId = e.currentTarget.dataset.userId;
+                        await toggleFollow(targetUserId, null); // Pass null for buttonElement as it's not the direct follow button
+                        reelOptionsMenu.classList.remove('show'); // Hide menu after action
+                    });
+                }
+            }
+
+
+            reelsFeed.appendChild(reel);
+            observer.observe(reel);
+          }
+      }
+
+      document.addEventListener('click', (event) => {
+        // Hide comment options menu if clicked outside
+        document.querySelectorAll('.comment-options-menu').forEach(menu => {
+            if (menu.classList.contains('show') && !menu.contains(event.target) && !event.target.closest('.comment-options-btn')) {
+                menu.classList.remove('show');
+            }
+        });
+        // Hide reel options menu if clicked outside
+        document.querySelectorAll('.reel-options-menu').forEach(menu => {
+            if (menu.classList.contains('show') && !menu.contains(event.target) && !event.target.closest('.reel-options-btn')) {
+                menu.classList.remove('show');
+            }
+        });
+      });
+
+
+      // --- Functions for comments modal ---
+
+      closeCommentsModalBtn.addEventListener('click', () => {
+        commentsModal.classList.remove('show');
+        commentsList.innerHTML = '';
+        commentInput.value = ''; // Clear input when closing
+      });
+
+      // NEW: Event listeners for the comment input and post button
+      postCommentBtn.addEventListener('click', () => {
+        const commentText = commentInput.value.trim();
+        if (commentText === "") {
+          alert("Comment cannot be empty.");
+          return;
+        }
+        postComment(commentText);
+        commentInput.value = ''; // Clear input after posting
+      });
+
+      commentInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) { // Shift+Enter for new line
+            event.preventDefault(); // Prevent default new line
+            postCommentBtn.click(); // Trigger post button click
+        }
+      });
+
+
+      async function openCommentsModal(reelId) {
+        commentsList.innerHTML = '<p style="text-align: center; color: #aaa;">Loading comments...</p>';
+        commentsModal.classList.add('show');
+        commentInput.focus(); // Focus the input when modal opens
+        await loadComments(reelId);
+      }
+
+      async function loadComments(reelId) {
+        commentsList.innerHTML = '';
+        try {
+          const commentsRef = db.collection("reels").doc(reelId).collection("comments").orderBy("timestamp", "asc");
+          const snapshot = await commentsRef.get();
+
+          if (snapshot.empty) {
+            commentsList.innerHTML = '<p style="text-align: center; color: #aaa;">No comments yet. Be the first to comment!</p>';
+            return;
+          }
+
+          for (const doc of snapshot.docs) {
+            const commentData = doc.data();
+            const commentUser = await getUserData(commentData.userId);
+            const commentUsername = commentUser && commentUser.username ? commentUser.username : 'Anonymous';
+            const commentUserProfilePic = commentUser && commentUser.profilePictureUrl ? commentUser.profilePictureUrl : '';
+            const commentUserFirstLetter = commentUsername ? commentUsername.charAt(0).toUpperCase() : '?';
+            const commentUserIsVerified = commentUser && commentUser.isVerified === true;
+
+
+            const profilePicHtml = commentUserProfilePic
+              ? `<img src="${commentUserProfilePic}" alt="Profile" class="comment-user-pic">`
+              : `<div class="comment-user-pic placeholder">${commentUserFirstLetter}</div>`;
+            
+            const verifiedTickHtml = commentUserIsVerified ? '<i class="fas fa-check-circle verified-tick"></i>' : '';
+            
+            const likedByCurrentUser = currentUser && commentData.likes && commentData.likes.includes(currentUser.uid);
+            const commentLikeIconClass = likedByCurrentUser ? 'fas fa-heart liked' : 'far fa-heart';
+            const commentLikeCount = commentData.likes ? commentData.likes.length : 0;
+
+            const isOwner = currentUser && commentData.userId === currentUser.uid;
+            const optionsMenuHtml = isOwner ? `
+                <div class="comment-options">
+                    <button class="comment-options-btn"><i class="fas fa-ellipsis-h"></i></button>
+                    <div class="comment-options-menu">
+                        <button class="delete-comment-btn" data-comment-id="${doc.id}">Delete</button>
+                    </div>
+                </div>
+            ` : '';
+
+            const commentItem = document.createElement('div');
+            commentItem.className = 'comment-item';
+            commentItem.innerHTML = `
+              ${profilePicHtml}
+              <div class="comment-content">
+                <span class="comment-username">${commentUsername} ${verifiedTickHtml}</span>
+                <span class="comment-text">${commentData.text}</span>
+                <div class="comment-actions">
+                  <span class="like-comment-btn" data-comment-id="${doc.id}"><i class="${commentLikeIconClass}"></i></span>
+                  <span class="like-count">${commentLikeCount}</span>
+                  <span>${formatTimestamp(commentData.timestamp)}</span>
+                </div>
+              </div>
+              ${optionsMenuHtml}
+            `;
+            commentsList.appendChild(commentItem);
+
+            if (isOwner) {
+                commentItem.querySelector('.comment-options-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const menu = commentItem.querySelector('.comment-options-menu');
+                    document.querySelectorAll('.comment-options-menu').forEach(m => {
+                        if (m !== menu) m.classList.remove('show');
+                    });
+                    menu.classList.toggle('show');
+                });
+                commentItem.querySelector('.delete-comment-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const commentIdToDelete = e.currentTarget.dataset.commentId;
+                    deleteComment(currentReelIdForComments, commentIdToDelete);
+                });
+            }
+
+            commentItem.querySelector('.like-comment-btn').addEventListener('click', async (e) => {
+                if (!currentUser) {
+                    alert("Please log in to like comments.");
+                    return;
+                }
+                const commentId = e.currentTarget.dataset.commentId;
+                await toggleCommentLike(currentReelIdForComments, commentId, e.currentTarget);
+            });
+          }
+          commentsList.scrollTop = commentsList.scrollHeight;
+        } catch (error) {
+          console.error("Error loading comments:", error);
+          commentsList.innerHTML = '<p style="text-align: center; color: red;">Failed to load comments.</p>';
+        }
+      }
+
+      // postComment function now gets commentText directly from the input
+      async function postComment(commentText) {
+        if (!currentUser || !currentReelIdForComments || commentText === "") {
+          alert("Invalid comment or reel not selected.");
+          return;
+        }
+
+        try {
+          await db.collection("reels").doc(currentReelIdForComments).collection("comments").add({
+            userId: currentUser.uid,
+            text: commentText,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            likes: []
+          });
+          
+          await loadComments(currentReelIdForComments); // Reload comments to show the new one
+          
+          const reelItemCommentCountSpan = document.querySelector(`.reel-action-item.comment-button[data-reel-id="${currentReelIdForComments}"] span`);
+          if (reelItemCommentCountSpan) {
+            const currentCount = parseInt(reelItemCommentCountSpan.textContent) || 0;
+            reelItemCommentCountSpan.textContent = currentCount + 1;
+          }
+
+          const reelRef = await db.collection("reels").doc(currentReelIdForComments).get();
+          if (reelRef.exists && currentUser.uid !== reelRef.data().userId) {
+              await db.collection("notifications").add({
+                type: "comment",
+                fromUserId: currentUser.uid,
+                toUserId: reelRef.data().userId,
+                reelId: currentReelIdForComments,
+                commentText: commentText,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                read: false
+              });
+          }
+
+        } catch (error) {
+          console.error("Error posting comment:", error);
+          alert("Failed to post comment. Please try again.");
+        }
+      }
+
+      async function deleteComment(reelId, commentId) {
+        if (!confirm("Are you sure you want to delete this comment?")) {
+            return;
+        }
+        try {
+            await db.collection("reels").doc(reelId).collection("comments").doc(commentId).delete();
+            alert("Comment deleted successfully!");
+            await loadComments(reelId);
+            
+            const reelItemCommentCountSpan = document.querySelector(`.reel-action-item.comment-button[data-reel-id="${currentReelIdForComments}"] span`);
+            if (reelItemCommentCountSpan) {
+                const currentCount = parseInt(reelItemCommentCountSpan.textContent) || 0;
+                reelItemCommentCountSpan.textContent = Math.max(0, currentCount - 1);
+            }
+        } catch (error) {
+            console.error("Error deleting comment:", error);
+            alert("Failed to delete comment. Please try again.");
+        }
+      }
+
+      async function toggleCommentLike(reelId, commentId, likeButtonElement) {
+        const commentRef = db.collection("reels").doc(reelId).collection("comments").doc(commentId);
+        try {
+            const commentDoc = await commentRef.get();
+            if (commentDoc.exists) {
+                const currentLikes = commentDoc.data().likes || [];
+                const likeIcon = likeButtonElement.querySelector('i');
+                const likeCountSpan = likeButtonElement.nextElementSibling;
+
+                if (currentLikes.includes(currentUser.uid)) {
+                    await commentRef.update({
+                        likes: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+                    });
+                    likeIcon.classList.remove('fas', 'liked');
+                    likeIcon.classList.add('far');
+                    likeCountSpan.textContent = currentLikes.length - 1;
+                } else {
+                    await commentRef.update({
+                        likes: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+                    });
+                    likeIcon.classList.remove('far');
+                    likeIcon.classList.add('fas', 'liked');
+                    likeCountSpan.textContent = currentLikes.length + 1;
+
+                    const commentData = commentDoc.data();
+                    if (currentUser.uid !== commentData.userId) {
+                        await db.collection("notifications").add({
+                            type: "comment_like",
+                            fromUserId: currentUser.uid,
+                            toUserId: commentData.userId,
+                            reelId: reelId,
+                            commentId: commentId,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            read: false
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error updating comment like:", error);
+        }
+      }
+
+      async function deleteReel(reelId, videoUrl) {
+        if (!currentUser) {
+            alert("You must be logged in to delete reels.");
+            return;
+        }
+
+        if (!confirm("Are you sure you want to delete this reel? This action cannot be undone.")) {
+            return;
+        }
+
+        try {
+            // 1. Delete comments associated with the reel
+            const commentsSnapshot = await db.collection("reels").doc(reelId).collection("comments").get();
+            const batch = db.batch();
+            commentsSnapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+
+            // 2. Delete the video file from Firebase Storage
+            if (videoUrl) {
+                const videoRef = storage.refFromURL(videoUrl);
+                await videoRef.delete();
+                console.log("Video deleted from storage:", videoUrl);
+            }
+
+            // 3. Delete the reel document from Firestore
+            await db.collection("reels").doc(reelId).delete();
+            alert("Reel deleted successfully!");
+
+            // Reload reels to reflect the deletion
+            if (reelId === currentPlayingVideo.closest('.reel-item').dataset.reelId) {
+                // If the current playing reel was deleted, ensure no video is playing
+                currentPlayingVideo.pause();
+                currentPlayingVideo = null;
+                currentMuteIndicator = null;
+            }
+            loadReels(currentView); // Reload all reels
+            
+
+        } catch (error) {
+            console.error("Error deleting reel:", error);
+            alert("Failed to delete reel. Please try again.");
+        }
+      }
+
+      // --- Follow/Unfollow Logic ---
+      async function toggleFollow(targetUserId, buttonElement) {
+        if (!currentUser) {
+          alert("You must be logged in to follow or unfollow users.");
+          return;
+        }
+
+        if (currentUser.uid === targetUserId) {
+          // Prevent self-follow/unfollow
+          return;
+        }
+
+        const currentUserRef = db.collection('users').doc(currentUser.uid);
+        const targetUserRef = db.collection('users').doc(targetUserId);
+
+        try {
+          const currentUserDoc = await currentUserRef.get();
+          // Use the global currentUserFollowing array
+          const currentFollowing = currentUserFollowing; // Already populated from auth.onAuthStateChanged
+          
+          const targetUserDoc = await targetUserRef.get();
+          const targetFollowers = targetUserDoc.exists && targetUserDoc.data().followers ? targetUserDoc.data().followers : [];
+
+          const isCurrentlyFollowing = currentFollowing.includes(targetUserId);
+
+          if (isCurrentlyFollowing) {
+            // Unfollow
+            await currentUserRef.update({
+              following: firebase.firestore.FieldValue.arrayRemove(targetUserId)
+            });
+            await targetUserRef.update({
+              followers: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+            });
+            if (buttonElement) { // Check if it's a real button element (i.e., not null from unfollow menu)
+                buttonElement.textContent = 'Follow';
+                buttonElement.classList.remove('following');
+            }
+            // Update the in-memory following list for the current user
+            currentUserFollowing = currentUserFollowing.filter(id => id !== targetUserId);
+            alert(`You have unfollowed ${buttonElement ? buttonElement.closest('.reel-username-line').querySelector('.reel-username').textContent.replace('@', '') : 'this user'}.`);
+          } else {
+            // Follow
+            await currentUserRef.update({
+              following: firebase.firestore.FieldValue.arrayUnion(targetUserId)
+            });
+            await targetUserRef.update({
+              followers: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+            });
+            if (buttonElement) { // Check if it's a real button element
+                buttonElement.textContent = 'Following';
+                buttonElement.classList.add('following');
+            }
+            // Update the in-memory following list for the current user
+            currentUserFollowing.push(targetUserId);
+            alert(`You are now following ${buttonElement ? buttonElement.closest('.reel-username-line').querySelector('.reel-username').textContent.replace('@', '') : 'this user'}!`);
+
+            // Add a notification for the followed user
+            await db.collection("notifications").add({
+                type: "follow",
+                fromUserId: currentUser.uid,
+                toUserId: targetUserId,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                read: false
+            });
+          }
+          // After follow/unfollow, refresh the reels to update all buttons correctly
+          // This can be heavy, consider more granular updates if performance is an issue with many reels
+          loadReels(currentView);
+
+        } catch (error) {
+          console.error("Error toggling follow:", error);
+          alert("Failed to perform follow/unfollow. Please try again.");
+        }
+      }
+
+      function formatTimestamp(timestamp) {
+        if (!timestamp) return '';
+        const date = timestamp.toDate();
+        const now = new Date();
+        const diff = now.getTime() - date.getTime();
+
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(minutes / (60 * 24));
+        const months = Math.floor(days / 30);
+        const years = Math.floor(days / 365);
+
+
+        if (seconds < 60) {
+            return seconds === 0 ? 'just now' : `${seconds}s ago`;
+        } else if (minutes < 60) {
+            return `${minutes}m ago`;
+        } else if (hours < 24) {
+            return `${hours}h ago`;
+        } else if (days < 30) {
+            return `${days}d ago`;
+        } else if (months < 12) {
+            return `${months}mo ago`;
+        } else {
+            return `${years}y ago`;
+        }
+      }
+    });
+  </script>
+</body>
+</html>

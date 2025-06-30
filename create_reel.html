@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Reel</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+    <style>
+        /* Base Styles - Mobile First */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden; /* Prevent horizontal scrolling */
+        }
+        .app-header {
+            height: 50px;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 101;
+            font-size: 1.1em; /* Adjusted for mobile readability */
+        }
+        .container {
+            flex-grow: 1;
+            padding: 70px 15px 80px 15px; /* Adjust padding for header and footer, reduced horizontal padding */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* Align content to top for more space */
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 600px; /* Limit width for better readability on larger screens */
+            margin: 0 auto; /* Center the container */
+        }
+        .upload-section {
+            width: 100%;
+            text-align: center;
+            background-color: #1a1a1a;
+            padding: 20px; /* Reduced padding */
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+        .upload-box {
+            border: 2px dashed #007bff;
+            padding: 30px 15px; /* Adjusted padding for mobile */
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 20px;
+        }
+        .upload-box:hover {
+            background-color: #2a2a2a;
+        }
+        .upload-box i {
+            font-size: 2.5em; /* Slightly smaller icon for mobile */
+            color: #007bff;
+            margin-bottom: 10px; /* Reduced margin */
+        }
+        .upload-box p {
+            margin: 0;
+            font-size: 0.95em; /* Slightly smaller text for mobile */
+            color: #ccc;
+        }
+        #video-preview {
+            max-width: 100%;
+            max-height: 250px; /* Adjusted max height for mobile portrait */
+            width: 100%; /* Ensure video takes full width of its container */
+            height: auto; /* Maintain aspect ratio */
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none; /* Hidden by default */
+            background-color: black;
+            object-fit: contain; /* Ensure entire video is visible within bounds */
+        }
+        .form-group {
+            width: 100%;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #ccc;
+            font-size: 0.95em;
+        }
+        .form-group textarea {
+            width: calc(100% - 20px); /* Account for padding */
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #333;
+            background-color: #333;
+            color: white;
+            resize: vertical;
+            min-height: 70px; /* Slightly reduced min-height */
+            font-size: 0.95em;
+            box-sizing: border-box; /* Include padding in width calculation */
+        }
+        .form-group button {
+            width: 100%;
+            padding: 10px; /* Reduced padding for smaller buttons */
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            font-size: 1em; /* Adjusted font size */
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .form-group button:hover {
+            background-color: #0056b3;
+        }
+        .form-group button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+        .footer-nav {
+            position: fixed;
+            bottom: 0;
+            height: 60px;
+            width: 100%;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #333;
+            z-index: 100;
+        }
+        .footer-nav a {
+            color: #ccc;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.75em; /* Smaller text for footer items */
+            flex: 1; /* Distribute space evenly */
+            text-align: center;
+        }
+        .footer-nav a:hover, .footer-nav a.active {
+            color: #007bff;
+        }
+        .footer-nav i {
+            font-size: 1.4em; /* Slightly smaller icons */
+            margin-bottom: 2px; /* Reduced margin */
+        }
+        .progress-container {
+            width: 100%;
+            background-color: #333;
+            border-radius: 5px;
+            margin-top: 15px; /* Adjusted margin */
+            height: 20px; /* Reduced height */
+            overflow: hidden;
+            display: none; /* Hidden by default */
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #007bff;
+            border-radius: 5px;
+            text-align: center;
+            line-height: 20px; /* Adjusted line height */
+            color: white;
+            font-weight: bold;
+            transition: width 0.3s ease;
+            font-size: 0.8em; /* Smaller font for progress text */
+        }
+        .message {
+            margin-top: 15px;
+            padding: 8px; /* Reduced padding */
+            border-radius: 5px;
+            font-weight: bold;
+            display: none;
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+            font-size: 0.9em; /* Smaller font for messages */
+        }
+        .message.success {
+            background-color: #28a745;
+            color: white;
+        }
+        .message.error {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        /* Desktop/Tablet Adjustments (Min-width media queries for larger screens) */
+        @media (min-width: 768px) {
+            .app-header {
+                font-size: 1.2em;
+            }
+            .container {
+                padding: 70px 20px 80px 20px;
+                justify-content: center; /* Center content vertically on larger screens */
+            }
+            .upload-section {
+                padding: 30px;
+            }
+            .upload-box {
+                padding: 40px 20px;
+            }
+            .upload-box i {
+                font-size: 3em;
+            }
+            .upload-box p {
+                font-size: 1.1em;
+            }
+            #video-preview {
+                max-height: 300px;
+            }
+            .form-group label {
+                font-size: 1em;
+            }
+            .form-group textarea {
+                min-height: 80px;
+                font-size: 1em;
+            }
+            .form-group button {
+                padding: 12px;
+                font-size: 1.1em;
+            }
+            .footer-nav a {
+                font-size: 0.8em;
+            }
+            .footer-nav i {
+                font-size: 1.5em;
+            }
+            .progress-container {
+                height: 25px;
+                margin-top: 20px;
+            }
+            .progress-bar {
+                line-height: 25px;
+                font-size: 1em;
+            }
+            .message {
+                padding: 10px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">Create Reel</header>
+
+    <div class="container">
+        <div class="upload-section">
+            <input type="file" id="videoFile" accept="video/*" hidden>
+            <div class="upload-box" id="uploadBox">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Drag & Drop your video here or Click to Browse</p>
+            </div>
+            <video id="video-preview" controls></video>
+        </div>
+
+        <div class="form-group">
+            <label for="caption">Caption (Optional):</label>
+            <textarea id="caption" placeholder="Write a catchy caption..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <button id="uploadButton" disabled>Upload Reel</button>
+        </div>
+
+        <div class="progress-container" id="progressBarContainer">
+            <div class="progress-bar" id="progressBar">0%</div>
+        </div>
+
+        <div class="message" id="uploadMessage"></div>
+    </div>
+
+    <div class="footer-nav">
+        <a href="home.html" class="nav-item" id="nav-home"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="search.html" class="nav-item" id="nav-search"><i class="fas fa-search"></i><span>Search</span></a>
+        <a href="create_reel.html" class="nav-item active" id="nav-upload"><i class="fas fa-plus-square"></i><span>Create</span></a>
+        <a href="notification.html" class="nav-item" id="nav-activity"><i class="fas fa-heart"></i><span>Activity</span></a>
+        <a href="profile.html" class="nav-item" id="nav-profile"><i class="fas fa-user"></i><span>Profile</span></a>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+
+    <script>
+        // Initialize Firebase with your project config
+        const firebaseConfig = {
+  apiKey: "AIzaSyAM2RLdA9wnsy5Nxo29KH7gUsaV4hfbH3U",
+  authDomain: "timtom-54c39.firebaseapp.com",
+  projectId: "timtom-54c39",
+  storageBucket: "timtom-54c39.firebasestorage.app",
+  messagingSenderId: "981119735149",
+  appId: "1:981119735149:web:b94b2cea3496b7abb4b664",
+  measurementId: "G-WNNN6WP21T"
+};
+        firebase.initializeApp(firebaseConfig);
+
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        const CLOUDINARY_CLOUD_NAME = "dhc49hdvk"; // Your Cloudinary Cloud Name
+        const CLOUDINARY_UPLOAD_PRESET = "shorts_upload"; // Create an unsigned upload preset in Cloudinary
+
+        const videoFile = document.getElementById('videoFile');
+        const uploadBox = document.getElementById('uploadBox');
+        const videoPreview = document.getElementById('video-preview');
+        const captionInput = document.getElementById('caption');
+        const uploadButton = document.getElementById('uploadButton');
+        const progressBarContainer = document.getElementById('progressBarContainer');
+        const progressBar = document.getElementById('progressBar');
+        const uploadMessage = document.getElementById('uploadMessage');
+
+        let selectedFile = null;
+        let currentUser = null;
+        let currentUserUsername = '';
+
+        // Authenticate user
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                alert("You need to be logged in to upload reels. Redirecting...");
+                window.location.href = 'index.html'; // Redirect to login page
+            } else {
+                currentUser = user;
+                // Fetch username from Firestore
+                const userDoc = await db.collection("users").doc(user.uid).get();
+                if (userDoc.exists) {
+                    currentUserUsername = userDoc.data().username || user.email.split('@')[0];
+                } else {
+                    currentUserUsername = user.email.split('@')[0]; // Fallback to email prefix
+                }
+            }
+        });
+
+        // Handle file selection via click
+        uploadBox.addEventListener('click', () => {
+            videoFile.click();
+        });
+
+        // Handle file drag and drop
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.style.backgroundColor = '#3a3a3a';
+        });
+
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.style.backgroundColor = '#1a1a1a';
+        });
+
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadBox.style.backgroundColor = '#1a1a1a';
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('video/')) {
+                handleFile(files[0]);
+            } else {
+                showMessage('Please upload a valid video file.', 'error');
+            }
+        });
+
+        // Handle file input change
+        videoFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            const fileURL = URL.createObjectURL(file);
+            videoPreview.src = fileURL;
+            videoPreview.style.display = 'block';
+            uploadButton.disabled = false;
+            showMessage(''); // Clear previous messages
+        }
+
+        uploadButton.addEventListener('click', uploadReel);
+
+        async function uploadReel() {
+            if (!selectedFile) {
+                showMessage('Please select a video file first.', 'error');
+                return;
+            }
+            if (!currentUser) {
+                showMessage('You must be logged in to upload a reel.', 'error');
+                return;
+            }
+
+            uploadButton.disabled = true;
+            progressBarContainer.style.display = 'block';
+            showMessage('Uploading...', '');
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            formData.append('cloud_name', CLOUDINARY_CLOUD_NAME);
+
+            // Use XMLHttpRequest directly for proper progress tracking
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`);
+
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    updateProgressBar(percent);
+                }
+            });
+
+            xhr.addEventListener('load', async () => {
+                if (xhr.status === 200) {
+                    const cloudinaryResponse = JSON.parse(xhr.responseText);
+                    const videoUrl = cloudinaryResponse.secure_url;
+                    const caption = captionInput.value.trim();
+
+                    // Save reel data to Firestore
+                    await db.collection("reels").add({
+                        userId: currentUser.uid,
+                        username: currentUserUsername, // Store username for display
+                        videoUrl: videoUrl,
+                        caption: caption,
+                        likes: [],
+                        commentsCount: 0, // Initialize comments count
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    showMessage('Reel uploaded successfully!', 'success');
+                    resetForm();
+                    setTimeout(() => {
+                        window.location.href = 'home.html'; // Redirect to reels feed after successful upload
+                    }, 2000); // Redirect after 2 seconds
+
+                } else {
+                    console.error("Error uploading reel to Cloudinary:", xhr.status, xhr.responseText);
+                    showMessage(`Upload failed: ${xhr.statusText || 'Unknown error'}`, 'error');
+                    uploadButton.disabled = false;
+                    progressBarContainer.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    progressBar.textContent = '0%';
+                }
+            });
+
+            xhr.addEventListener('error', () => {
+                console.error("Network error during Cloudinary upload.");
+                showMessage('Network error during upload.', 'error');
+                uploadButton.disabled = false;
+                progressBarContainer.style.display = 'none';
+                progressBar.style.width = '0%';
+                progressBar.textContent = '0%';
+            });
+
+            xhr.send(formData);
+        }
+
+
+        function updateProgressBar(progress) {
+            progressBar.style.width = `${progress}%`;
+            progressBar.textContent = `${progress}%`;
+            if (progress === 100) {
+                showMessage('Processing video...', '');
+            }
+        }
+
+        function showMessage(msg, type) {
+            uploadMessage.textContent = msg;
+            uploadMessage.className = 'message'; // Reset classes
+            if (type) {
+                uploadMessage.classList.add(type);
+            }
+            uploadMessage.style.display = 'block';
+        }
+
+        function resetForm() {
+            selectedFile = null;
+            videoFile.value = '';
+            videoPreview.src = '';
+            videoPreview.style.display = 'none';
+            captionInput.value = '';
+            uploadButton.disabled = true;
+            progressBarContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+            showMessage('');
+        }
+    </script>
+</body>
+</html>
