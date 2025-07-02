@@ -97,7 +97,7 @@
             color: #ccc;
             font-size: 0.95em;
         }
-        .form-group textarea {
+        .form-group textarea, .form-group select {
             width: calc(100% - 20px); /* Account for padding */
             padding: 10px;
             border-radius: 5px;
@@ -105,9 +105,12 @@
             background-color: #333;
             color: white;
             resize: vertical;
-            min-height: 70px; /* Slightly reduced min-height */
+            min-height: 70px; /* Slightly reduced min-height for textarea */
             font-size: 0.95em;
             box-sizing: border-box; /* Include padding in width calculation */
+        }
+        .form-group select {
+            min-height: auto; /* Reset min-height for select */
         }
         .form-group button {
             width: 100%;
@@ -225,8 +228,8 @@
             .form-group label {
                 font-size: 1em;
             }
-            .form-group textarea {
-                min-height: 80px;
+            .form-group textarea, .form-group select {
+                min-height: 80px; /* Adjusted min-height for textarea */
                 font-size: 1em;
             }
             .form-group button {
@@ -273,6 +276,13 @@
         </div>
 
         <div class="form-group">
+            <label for="language">Video Language:</label>
+            <select id="language">
+                <option value="">Select Language</option>
+                </select>
+        </div>
+
+        <div class="form-group">
             <button id="uploadButton" disabled>Upload Reel</button>
         </div>
 
@@ -299,14 +309,14 @@
     <script>
         // Initialize Firebase with your project config
         const firebaseConfig = {
-  apiKey: "AIzaSyAM2RLdA9wnsy5Nxo29KH7gUsaV4hfbH3U",
-  authDomain: "timtom-54c39.firebaseapp.com",
-  projectId: "timtom-54c39",
-  storageBucket: "timtom-54c39.firebasestorage.app",
-  messagingSenderId: "981119735149",
-  appId: "1:981119735149:web:b94b2cea3496b7abb4b664",
-  measurementId: "G-WNNN6WP21T"
-};
+            apiKey: "AIzaSyAM2RLdA9wnsy5Nxo29KH7gUsaV4hfbH3U",
+            authDomain: "timtom-54c39.firebaseapp.com",
+            projectId: "timtom-54c39",
+            storageBucket: "timtom-54c39.firebasestorage.app",
+            messagingSenderId: "981119735149",
+            appId: "1:981119735149:web:b94b2cea3496b7abb4b664",
+            measurementId: "G-WNNN6WP21T"
+        };
         firebase.initializeApp(firebaseConfig);
 
         const auth = firebase.auth();
@@ -320,6 +330,7 @@
         const uploadBox = document.getElementById('uploadBox');
         const videoPreview = document.getElementById('video-preview');
         const captionInput = document.getElementById('caption');
+        const languageSelect = document.getElementById('language'); // New language select element
         const uploadButton = document.getElementById('uploadButton');
         const progressBarContainer = document.getElementById('progressBarContainer');
         const progressBar = document.getElementById('progressBar');
@@ -329,55 +340,86 @@
         let currentUser = null;
         let currentUserUsername = '';
 
-        // Authenticate user
-        auth.onAuthStateChanged(async (user) => {
-            if (!user) {
-                alert("You need to be logged in to upload reels. Redirecting...");
-                window.location.href = 'index.html'; // Redirect to login page
-            } else {
-                currentUser = user;
-                // Fetch username from Firestore
-                const userDoc = await db.collection("users").doc(user.uid).get();
-                if (userDoc.exists) {
-                    currentUserUsername = userDoc.data().username || user.email.split('@')[0];
+        // Define the consistent language options
+        const LANGUAGES = [
+            "Hindi", "Punjabi", "English", "Bhojpuri", "Tamil", "Telugu",
+            "Bengali", "Kannada", "Marathi", "Gujarati"
+        ];
+
+        // Function to populate the language dropdown
+        function populateLanguageDropdown() {
+            // Clear existing options, except the default "Select Language" one if it exists
+            // We'll regenerate all options including the default for simplicity
+            languageSelect.innerHTML = '<option value="">Select Language</option>';
+            LANGUAGES.forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang;
+                option.textContent = lang;
+                languageSelect.appendChild(option);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Populate the language dropdown when the DOM is loaded
+            populateLanguageDropdown();
+
+            // Highlight the correct nav item
+            document.getElementById('nav-upload').classList.add('active');
+            document.getElementById('nav-home').classList.remove('active'); // Ensure home is not active
+
+            // Authenticate user
+            auth.onAuthStateChanged(async (user) => {
+                if (!user) {
+                    alert("You need to be logged in to upload reels. Redirecting...");
+                    window.location.href = 'index.html'; // Redirect to login page
                 } else {
-                    currentUserUsername = user.email.split('@')[0]; // Fallback to email prefix
+                    currentUser = user;
+                    // Fetch username from Firestore
+                    const userDoc = await db.collection("users").doc(user.uid).get();
+                    if (userDoc.exists) {
+                        currentUserUsername = userDoc.data().username || user.email.split('@')[0];
+                    } else {
+                        currentUserUsername = user.email.split('@')[0]; // Fallback to email prefix
+                    }
                 }
-            }
+            });
+
+            // Handle file selection via click
+            uploadBox.addEventListener('click', () => {
+                videoFile.click();
+            });
+
+            // Handle file drag and drop
+            uploadBox.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadBox.style.backgroundColor = '#3a3a3a';
+            });
+
+            uploadBox.addEventListener('dragleave', () => {
+                uploadBox.style.backgroundColor = '#1a1a1a';
+            });
+
+            uploadBox.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadBox.style.backgroundColor = '#1a1a1a';
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type.startsWith('video/')) {
+                    handleFile(files[0]);
+                } else {
+                    showMessage('Please upload a valid video file.', 'error');
+                }
+            });
+
+            // Handle file input change
+            videoFile.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+
+            uploadButton.addEventListener('click', uploadReel);
         });
 
-        // Handle file selection via click
-        uploadBox.addEventListener('click', () => {
-            videoFile.click();
-        });
-
-        // Handle file drag and drop
-        uploadBox.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadBox.style.backgroundColor = '#3a3a3a';
-        });
-
-        uploadBox.addEventListener('dragleave', () => {
-            uploadBox.style.backgroundColor = '#1a1a1a';
-        });
-
-        uploadBox.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadBox.style.backgroundColor = '#1a1a1a';
-            const files = e.dataTransfer.files;
-            if (files.length > 0 && files[0].type.startsWith('video/')) {
-                handleFile(files[0]);
-            } else {
-                showMessage('Please upload a valid video file.', 'error');
-            }
-        });
-
-        // Handle file input change
-        videoFile.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFile(e.target.files[0]);
-            }
-        });
 
         function handleFile(file) {
             selectedFile = file;
@@ -388,8 +430,6 @@
             showMessage(''); // Clear previous messages
         }
 
-        uploadButton.addEventListener('click', uploadReel);
-
         async function uploadReel() {
             if (!selectedFile) {
                 showMessage('Please select a video file first.', 'error');
@@ -397,6 +437,12 @@
             }
             if (!currentUser) {
                 showMessage('You must be logged in to upload a reel.', 'error');
+                return;
+            }
+
+            const videoLanguage = languageSelect.value;
+            if (!videoLanguage) {
+                showMessage('Please select the video language.', 'error');
                 return;
             }
 
@@ -432,8 +478,10 @@
                         username: currentUserUsername, // Store username for display
                         videoUrl: videoUrl,
                         caption: caption,
+                        language: videoLanguage, // Save the selected language
                         likes: [],
                         commentsCount: 0, // Initialize comments count
+                        viewsCount: 0, // Initialize views count
                         timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
 
@@ -489,6 +537,7 @@
             videoPreview.src = '';
             videoPreview.style.display = 'none';
             captionInput.value = '';
+            languageSelect.value = ''; // Reset language selection
             uploadButton.disabled = true;
             progressBarContainer.style.display = 'none';
             progressBar.style.width = '0%';
