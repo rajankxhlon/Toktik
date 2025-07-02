@@ -25,7 +25,7 @@
       height: 50px;
       background-color: #1a1a1a;
       display: flex;
-      justify-content: center;
+      justify-content: space-between; /* Changed to space-between */
       align-items: center;
       border-bottom: 1px solid #333;
       font-weight: bold;
@@ -47,6 +47,7 @@
         justify-content: center;
         width: 100%;
         gap: 20px; /* Space between tabs */
+        flex-grow: 1; /* Allow tabs to take available space */
     }
     .header-tab {
         color: #ccc;
@@ -69,6 +70,57 @@
         height: 2px;
         background-color: #007bff;
     }
+
+    /* Styles for the drawer icon */
+    .drawer-icon {
+        color: white;
+        font-size: 1.5em;
+        cursor: pointer;
+        margin-right: 15px; /* Space between icon and tabs */
+        z-index: 102; /* Ensure it's above other elements */
+    }
+
+    /* Styles for the drawer menu */
+    .drawer-menu {
+        position: fixed;
+        top: 50px; /* Below the header */
+        left: 0;
+        width: 250px; /* Adjust width as needed */
+        height: calc(100vh - 50px);
+        background-color: #1f1f1f;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-out;
+        z-index: 100;
+        padding-top: 20px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+    .drawer-menu.show {
+        transform: translateX(0);
+    }
+    .drawer-menu ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .drawer-menu ul li {
+        padding: 12px 20px;
+        border-bottom: 1px solid #333;
+        cursor: pointer;
+        color: #ccc;
+        font-size: 1.1em;
+        transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    .drawer-menu ul li:hover {
+        background-color: #333;
+        color: white;
+    }
+    .drawer-menu ul li:last-child {
+        border-bottom: none;
+    }
+
 
     #reels-feed {
       flex-grow: 1;
@@ -576,16 +628,151 @@
       z-index: 21; /* Above overlay */
       text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
     }
+
+    /* --- Language Selection Modal Styles --- */
+    .language-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 200; /* Higher than other modals */
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .language-modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .language-modal-content {
+      background-color: #1a1a1a;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .language-modal-content h2 {
+      margin-top: 0;
+      margin-bottom: 25px;
+      color: white;
+      font-size: 1.3em;
+    }
+
+    .language-options {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .language-option {
+      background-color: #333;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 10px 15px;
+      cursor: pointer;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+      position: relative;
+      font-size: 0.95em;
+      min-width: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .language-option:hover {
+      background-color: #444;
+      border-color: #007bff;
+    }
+
+    .language-option input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+    }
+
+    .language-option input[type="checkbox"]:checked + span {
+      background-color: #007bff;
+      border-color: #007bff;
+      color: white;
+    }
+
+    .language-option span {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 5px;
+      line-height: 1.2;
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      padding: 5px; /* Inner padding for the text */
+    }
+
+    .language-modal-content button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      font-size: 1.1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      width: 100%;
+    }
+
+    .language-modal-content button:hover {
+      background-color: #0056b3;
+    }
+
+    .language-modal-content .skip-btn {
+        background: none;
+        color: #007bff;
+        border: none;
+        margin-top: 15px;
+        font-size: 0.9em;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+
+    .language-modal-content .skip-btn:hover {
+        color: #0056b3;
+    }
   </style>
 </head>
 <body>
   <div id="app-container">
     <header class="app-header">
+      <div class="drawer-icon" id="drawerIcon">
+        <i class="fas fa-bars"></i>
+      </div>
       <div class="header-tabs">
         <span class="header-tab active" id="tab-for-you">For You</span>
         <span class="header-tab" id="tab-following">Following</span>
       </div>
     </header>
+
+    <div id="drawerMenu" class="drawer-menu">
+      <ul>
+        <li id="changeLanguageOption"><i class="fas fa-language"></i> Change Content Language</li>
+        </ul>
+    </div>
+
     <div id="reels-feed">
       <p style="text-align: center; padding-top: 50vh; transform: translateY(-50%);">Loading reels...</p>
     </div>
@@ -607,6 +794,61 @@
       <div class="comment-input-area">
         <input type="text" id="commentInput" placeholder="Add a comment...">
         <button id="postCommentBtn">Post</button>
+      </div>
+    </div>
+
+    <div id="languageModalOverlay" class="language-modal-overlay">
+      <div class="language-modal-content">
+        <h2>Choose Your Preferred Languages</h2>
+        <p>Select languages to personalize your "For You" feed. You can change this later in your profile.</p>
+        <div class="language-options" id="languageOptions">
+          <label class="language-option">
+            <input type="checkbox" name="contentLanguage" value="All">
+            <span>All</span>
+          </label>
+          <label class="language-option">
+            <input type="checkbox" name="contentLanguage" value="Hindi">
+            <span>Hindi</span>
+          </label>
+          <label class="language-option">
+            <input type="checkbox" name="contentLanguage" value="Punjabi">
+            <span>Punjabi</span>
+          </label>
+          <label class="language-option">
+            <input type="checkbox" name="contentLanguage" value="English">
+            <span>English</span>
+          </label>
+          <label class="language-option">
+            <input type="checkbox" name="contentLanguage" value="Bhojpuri">
+            <span>Bhojpuri</span>
+          </label>
+          <label class="language-option">
+            <input type="checkbox" name="contentLanguage" value="Tamil">
+            <span>Tamil</span>
+          </label>
+          <label class="language-option">
+            <input type="checkbox" name="contentLanguage" value="Telugu">
+            <span>Telugu</span>
+          </label>
+          <label class="language-option">
+            <input type="checkbox" name="contentLanguage" value="Bengali">
+            <span>Bengali</span>
+          </label>
+          <label class="language-option">
+            <input type="checkbox" name="contentLanguage" value="Kannada">
+            <span>Kannada</span>
+          </label>
+          <label class="language-option">
+            <input type="checkbox" name="contentLanguage" value="Marathi">
+            <span>Marathi</span>
+          </label>
+          <label class="language-option">
+            <input type="checkbox" name="contentLanguage" value="Gujarati">
+            <span>Gujarati</span>
+          </label>
+        </div>
+        <button id="saveLanguagesBtn">Save Preferences</button>
+        <button id="skipLanguagesBtn" class="skip-btn">Skip for now</button>
       </div>
     </div>
 
@@ -640,6 +882,7 @@
     let currentReelIdForComments = null;
     let currentView = 'for-you'; // Default view
     let currentUserFollowing = []; // Initialize as empty array, will be populated on login
+    let userContentLanguages = []; // New: User's preferred content languages
 
     // Cache for user data to reduce Firestore reads
     const usersCache = {};
@@ -660,6 +903,18 @@
       const tabForYou = document.getElementById('tab-for-you');
       const tabFollowing = document.getElementById('tab-following');
 
+      // NEW Language Selection Modal Elements
+      const languageModalOverlay = document.getElementById('languageModalOverlay');
+      const languageOptionsContainer = document.getElementById('languageOptions');
+      const saveLanguagesBtn = document.getElementById('saveLanguagesBtn');
+      const skipLanguagesBtn = document.getElementById('skipLanguagesBtn');
+
+      // NEW Drawer Elements
+      const drawerIcon = document.getElementById('drawerIcon');
+      const drawerMenu = document.getElementById('drawerMenu');
+      const changeLanguageOption = document.getElementById('changeLanguageOption');
+
+
       auth.onAuthStateChanged(async (user) => {
         if (!user) {
           alert("Not logged in. Redirecting...");
@@ -673,16 +928,24 @@
           // Populate currentUserFollowing from userDoc
           currentUserFollowing = userDoc.exists && userDoc.data().following ? userDoc.data().following : [];
           
-          // Check for reelId in URL parameter when page loads
-          const urlParams = new URLSearchParams(window.location.search);
-          const reelIdToPlay = urlParams.get('reelId');
+          // NEW: Check if it's the user's first login or if languages are not set
+          const isFirstLogin = userDoc.exists ? userDoc.data().isFirstLogin : true;
+          userContentLanguages = userDoc.exists && userDoc.data().contentLanguages ? userDoc.data().contentLanguages : [];
 
-          if (reelIdToPlay) {
-              await loadSpecificReelAndOthers(reelIdToPlay);
-              // Clear the URL parameter after loading
-              history.replaceState(null, '', window.location.pathname);
+          if (isFirstLogin || userContentLanguages.length === 0) {
+              showLanguageSelectionModal();
           } else {
-              loadReels(currentView);
+              // Check for reelId in URL parameter when page loads
+              const urlParams = new URLSearchParams(window.location.search);
+              const reelIdToPlay = urlParams.get('reelId');
+
+              if (reelIdToPlay) {
+                  await loadSpecificReelAndOthers(reelIdToPlay);
+                  // Clear the URL parameter after loading
+                  history.replaceState(null, '', window.location.pathname);
+              } else {
+                  loadReels(currentView);
+              }
           }
         }
       });
@@ -703,6 +966,36 @@
           currentView = 'following';
           loadReels(currentView);
         }
+      });
+
+      // --- Drawer Menu Event Listeners ---
+      drawerIcon.addEventListener('click', (e) => {
+          e.stopPropagation(); // Prevent this click from immediately closing the menu via document click
+          drawerMenu.classList.toggle('show');
+      });
+
+      changeLanguageOption.addEventListener('click', () => {
+          drawerMenu.classList.remove('show'); // Hide drawer menu
+          showLanguageSelectionModal(); // Show language modal
+      });
+
+      document.addEventListener('click', (event) => {
+        // Hide drawer menu if clicked outside
+        if (drawerMenu.classList.contains('show') && !drawerMenu.contains(event.target) && event.target !== drawerIcon && !drawerIcon.contains(event.target)) {
+            drawerMenu.classList.remove('show');
+        }
+        // Hide comment options menu if clicked outside
+        document.querySelectorAll('.comment-options-menu').forEach(menu => {
+            if (menu.classList.contains('show') && !menu.contains(event.target) && !event.target.closest('.comment-options-btn')) {
+                menu.classList.remove('show');
+            }
+        });
+        // Hide reel options menu if clicked outside
+        document.querySelectorAll('.reel-options-menu').forEach(menu => {
+            if (menu.classList.contains('show') && !menu.contains(event.target) && !event.target.closest('.reel-options-btn')) {
+                menu.classList.remove('show');
+            }
+        });
       });
 
 
@@ -738,7 +1031,15 @@
         
         let query;
         if (view === 'for-you') {
-          query = db.collection("reels").orderBy("timestamp", "desc");
+          // NEW: Filter "For You" reels by selected languages
+          if (userContentLanguages && userContentLanguages.length > 0 && !userContentLanguages.includes('All')) {
+            query = db.collection("reels")
+                      .where("language", "in", userContentLanguages)
+                      .orderBy("timestamp", "desc");
+          } else {
+            // Fallback: if no languages selected OR 'All' is selected, show all reels
+            query = db.collection("reels").orderBy("timestamp", "desc");
+          }
         } else if (view === 'following') {
           if (!currentUser || currentUserFollowing.length === 0) {
             reelsFeed.innerHTML = `<p style="text-align:center; padding-top:50vh; transform:translateY(-50%);">You are not following anyone yet. Explore "For You" to find new creators!</p>`;
@@ -776,9 +1077,18 @@
           }
 
           // Fetch all other reels (for 'for-you' logic, or all if not following)
-          let allReelsQuery = db.collection("reels").orderBy("timestamp", "desc");
+          let allReelsQuery;
           if (currentView === 'following' && currentUserFollowing.length > 0) {
               allReelsQuery = db.collection("reels").where("userId", "in", currentUserFollowing).orderBy("timestamp", "desc");
+          } else {
+             // NEW: Filter 'For You' when loading specific reel and others by language
+             if (userContentLanguages && userContentLanguages.length > 0 && !userContentLanguages.includes('All')) {
+                allReelsQuery = db.collection("reels")
+                                  .where("language", "in", userContentLanguages)
+                                  .orderBy("timestamp", "desc");
+             } else {
+                allReelsQuery = db.collection("reels").orderBy("timestamp", "desc");
+             }
           }
           const allReelsSnapshot = await allReelsQuery.get();
           
@@ -789,7 +1099,7 @@
               // Shuffle other reels only for 'for-you'
               for (let i = otherReelsDocs.length - 1; i > 0; i--) {
                   const j = Math.floor(Math.random() * (i + 1));
-                  [otherReelsDocs[i], otherReelsDocs[j]] = [otherReelsDocs[j], otherReels[i]];
+                  [otherReelsDocs[i], otherReelsDocs[j]] = [otherReelsDocs[j], otherReelsDocs[i]];
               }
           }
 
@@ -849,6 +1159,7 @@
             const reel = document.createElement('div');
             reel.className = 'reel-item';
             reel.dataset.reelId = doc.id; // Store reel ID on the element
+            reel.dataset.userId = data.userId; // Store uploader userId for easy access
 
             const uploaderUserId = data.userId;
             const uploaderData = await getUserData(uploaderUserId);
@@ -884,8 +1195,10 @@
 
             // Build reel options menu content dynamically
             let reelOptionsMenuContent = '';
-            if (currentUser && currentUser.uid !== uploaderUserId && isFollowing) { // Unfollow option for others you follow
-                reelOptionsMenuContent += `<button class="unfollow-reel-btn" data-user-id="${uploaderUserId}">Unfollow</button>`;
+            // Only add unfollow if the reel owner is NOT the current user AND they are currently following
+            if (currentUser && currentUser.uid !== uploaderUserId) {
+                // We'll update the text dynamically based on the isFollowing state
+                reelOptionsMenuContent += `<button class="toggle-follow-option" data-user-id="${uploaderUserId}">${isFollowing ? 'Unfollow' : 'Follow'}</button>`;
             }
             if (isReelOwner) { // Delete option for your own reels
                 reelOptionsMenuContent += `<button class="delete-reel-btn" data-reel-id="${doc.id}" data-video-url="${data.videoUrl}">Delete Reel</button>`;
@@ -961,7 +1274,7 @@
             if (reelFollowButton) {
                 reelFollowButton.addEventListener('click', async (e) => {
                     const targetUserId = e.target.dataset.userId;
-                    await toggleFollow(targetUserId, reelFollowButton);
+                    await toggleFollow(targetUserId, e.target); // Pass the specific button element
                 });
             }
 
@@ -1048,13 +1361,13 @@
                     });
                 }
                 
-                // Add listener for unfollow button if it exists in this menu
-                const unfollowBtn = reelOptionsMenu.querySelector('.unfollow-reel-btn');
-                if (unfollowBtn) {
-                    unfollowBtn.addEventListener('click', async (e) => {
+                // Add listener for toggle follow option if it exists in this menu
+                const toggleFollowOption = reelOptionsMenu.querySelector('.toggle-follow-option');
+                if (toggleFollowOption) {
+                    toggleFollowOption.addEventListener('click', async (e) => {
                         e.stopPropagation();
                         const targetUserId = e.currentTarget.dataset.userId;
-                        await toggleFollow(targetUserId, null); // Pass null for buttonElement as it's not the direct follow button
+                        await toggleFollow(targetUserId, null); // Pass null as we're not updating a *specific* direct follow button here
                         reelOptionsMenu.classList.remove('show'); // Hide menu after action
                     });
                 }
@@ -1065,22 +1378,6 @@
             observer.observe(reel);
           }
       }
-
-      document.addEventListener('click', (event) => {
-        // Hide comment options menu if clicked outside
-        document.querySelectorAll('.comment-options-menu').forEach(menu => {
-            if (menu.classList.contains('show') && !menu.contains(event.target) && !event.target.closest('.comment-options-btn')) {
-                menu.classList.remove('show');
-            }
-        });
-        // Hide reel options menu if clicked outside
-        document.querySelectorAll('.reel-options-menu').forEach(menu => {
-            if (menu.classList.contains('show') && !menu.contains(event.target) && !event.target.closest('.reel-options-btn')) {
-                menu.classList.remove('show');
-            }
-        });
-      });
-
 
       // --- Functions for comments modal ---
 
@@ -1331,24 +1628,58 @@
 
             // 2. Delete the video file from Firebase Storage
             if (videoUrl) {
-                const videoRef = storage.refFromURL(videoUrl);
-                await videoRef.delete();
-                console.log("Video deleted from storage:", videoUrl);
+                // Cloudinary URLs typically don't need Firebase Storage deletion.
+                // If you are using Firebase Storage for videos, this part is relevant.
+                // Assuming Cloudinary based on your config, this might not be needed.
+                // If it was Firebase Storage, the URL would be like:
+                // gs://timtom-54c39.appspot.com/videos/somefile.mp4
+                // You would extract the path from that.
+                // For Cloudinary, you usually delete via their API, not directly from the URL.
+                // For now, I'll comment out the Firebase Storage part as you mentioned Cloudinary.
+                /*
+                const videoStorageRef = storage.refFromURL(videoUrl);
+                await videoStorageRef.delete();
+                console.log("Video deleted from Firebase Storage:", videoUrl);
+                */
             }
 
             // 3. Delete the reel document from Firestore
             await db.collection("reels").doc(reelId).delete();
             alert("Reel deleted successfully!");
 
-            // Reload reels to reflect the deletion
-            if (reelId === currentPlayingVideo.closest('.reel-item').dataset.reelId) {
+            // Remove the reel from the DOM immediately
+            const deletedReelElement = document.querySelector(`.reel-item[data-reel-id="${reelId}"]`);
+            if (deletedReelElement) {
+                deletedReelElement.remove();
                 // If the current playing reel was deleted, ensure no video is playing
-                currentPlayingVideo.pause();
-                currentPlayingVideo = null;
-                currentMuteIndicator = null;
+                if (currentPlayingVideo && currentPlayingVideo.closest('.reel-item').dataset.reelId === reelId) {
+                    currentPlayingVideo = null;
+                    currentMuteIndicator = null;
+                }
             }
-            loadReels(currentView); // Reload all reels
             
+            // If the feed becomes empty, display a message
+            if (reelsFeed.children.length === 0) {
+                reelsFeed.innerHTML = `<p style="text-align:center; padding-top:50vh; transform:translateY(-50%);">No reels to display for this section. Check back later!</p>`;
+            } else {
+                 // Try to play the next available reel if any
+                const firstReel = reelsFeed.querySelector('.reel-item');
+                if (firstReel) {
+                    const video = firstReel.querySelector('video');
+                    const indicator = firstReel.querySelector('.mute-indicator');
+                    if (video && indicator) {
+                        video.muted = globalMuteState;
+                        video.currentTime = 0;
+                        video.play().catch(() => {});
+                        currentPlayingVideo = video;
+                        currentMuteIndicator = indicator;
+                        indicator.classList.toggle('hidden', !globalMuteState);
+                        indicator.innerHTML = `<i class="fas ${globalMuteState ? 'fa-volume-mute' : 'fa-volume-up'}"></i>`;
+                        incrementReelViewCount(firstReel.dataset.reelId);
+                    }
+                }
+            }
+
 
         } catch (error) {
             console.error("Error deleting reel:", error);
@@ -1372,14 +1703,8 @@
         const targetUserRef = db.collection('users').doc(targetUserId);
 
         try {
-          const currentUserDoc = await currentUserRef.get();
           // Use the global currentUserFollowing array
-          const currentFollowing = currentUserFollowing; // Already populated from auth.onAuthStateChanged
-          
-          const targetUserDoc = await targetUserRef.get();
-          const targetFollowers = targetUserDoc.exists && targetUserDoc.data().followers ? targetUserDoc.data().followers : [];
-
-          const isCurrentlyFollowing = currentFollowing.includes(targetUserId);
+          const isCurrentlyFollowing = currentUserFollowing.includes(targetUserId);
 
           if (isCurrentlyFollowing) {
             // Unfollow
@@ -1389,13 +1714,10 @@
             await targetUserRef.update({
               followers: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
             });
-            if (buttonElement) { // Check if it's a real button element (i.e., not null from unfollow menu)
-                buttonElement.textContent = 'Follow';
-                buttonElement.classList.remove('following');
-            }
             // Update the in-memory following list for the current user
             currentUserFollowing = currentUserFollowing.filter(id => id !== targetUserId);
-            alert(`You have unfollowed ${buttonElement ? buttonElement.closest('.reel-username-line').querySelector('.reel-username').textContent.replace('@', '') : 'this user'}.`);
+            
+            alert(`You have unfollowed this user.`);
           } else {
             // Follow
             await currentUserRef.update({
@@ -1404,13 +1726,9 @@
             await targetUserRef.update({
               followers: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
             });
-            if (buttonElement) { // Check if it's a real button element
-                buttonElement.textContent = 'Following';
-                buttonElement.classList.add('following');
-            }
             // Update the in-memory following list for the current user
             currentUserFollowing.push(targetUserId);
-            alert(`You are now following ${buttonElement ? buttonElement.closest('.reel-username-line').querySelector('.reel-username').textContent.replace('@', '') : 'this user'}!`);
+            alert(`You are now following this user!`);
 
             // Add a notification for the followed user
             await db.collection("notifications").add({
@@ -1421,9 +1739,42 @@
                 read: false
             });
           }
-          // After follow/unfollow, refresh the reels to update all buttons correctly
-          // This can be heavy, consider more granular updates if performance is an issue with many reels
-          loadReels(currentView);
+
+          // **Real-time UI update for all relevant buttons without page refresh**
+          document.querySelectorAll(`.reel-item[data-user-id="${targetUserId}"]`).forEach(reelItem => {
+              const followBtn = reelItem.querySelector('.follow-button');
+              const toggleFollowOption = reelItem.querySelector('.toggle-follow-option');
+
+              if (isCurrentlyFollowing) {
+                  // If unfollowed
+                  if (followBtn) {
+                      followBtn.textContent = 'Follow';
+                      followBtn.classList.remove('following');
+                  }
+                  if (toggleFollowOption) {
+                      toggleFollowOption.textContent = 'Follow';
+                  }
+              } else {
+                  // If followed
+                  if (followBtn) {
+                      followBtn.textContent = 'Following';
+                      followBtn.classList.add('following');
+                  }
+                  if (toggleFollowOption) {
+                      toggleFollowOption.textContent = 'Unfollow';
+                  }
+              }
+          });
+
+          // If the 'Following' tab is active, we might need to filter reels
+          // This is a more complex real-time update. For now, if the 'Following' tab is active
+          // and a user is unfollowed, their reels will remain until a full refresh or tab switch.
+          // For truly dynamic 'Following' feed, you'd need to re-filter the current DOM elements
+          // or re-render only the 'Following' feed if the active tab is 'Following'.
+          // A simpler approach for the 'Following' tab would be to just reload that tab if it's active.
+          if (currentView === 'following') {
+              loadReels(currentView); // Reload only if currently on 'Following' tab
+          }
 
         } catch (error) {
           console.error("Error toggling follow:", error);
@@ -1459,7 +1810,107 @@
             return `${years}y ago`;
         }
       }
-    });
+
+      // --- NEW Language Selection Modal Functions ---
+
+      function showLanguageSelectionModal() {
+        languageModalOverlay.classList.add('show');
+        // Pre-select any languages already saved (if any, in case user comes back to modify)
+        document.querySelectorAll('input[name="contentLanguage"]').forEach(checkbox => {
+            checkbox.checked = userContentLanguages.includes(checkbox.value);
+            // Visually update the label based on checked state
+            checkbox.nextElementSibling.style.backgroundColor = checkbox.checked ? '#007bff' : '#333';
+            checkbox.nextElementSibling.style.borderColor = checkbox.checked ? '#007bff' : '#444';
+            checkbox.nextElementSibling.style.color = checkbox.checked ? 'white' : 'white';
+        });
+      }
+
+      saveLanguagesBtn.addEventListener('click', async () => {
+        let selectedLanguages = Array.from(document.querySelectorAll('input[name="contentLanguage"]:checked'))
+                                     .map(checkbox => checkbox.value);
+        
+        // If 'All' is selected, store an empty array or specific marker that means "all"
+        // For simplicity, let's store ['All'] if 'All' is chosen, and treat it specially when querying.
+        if (selectedLanguages.includes('All')) {
+            selectedLanguages = ['All']; // If 'All' is selected, override other selections
+        } else if (selectedLanguages.length === 0) {
+             // If no languages are selected (and 'All' wasn't selected),
+             // consider this as an empty preference set, which will default to all content.
+             selectedLanguages = []; 
+        }
+
+        if (currentUser) {
+            try {
+                await db.collection("users").doc(currentUser.uid).update({
+                    contentLanguages: selectedLanguages,
+                    isFirstLogin: false // Mark as not first login
+                });
+                userContentLanguages = selectedLanguages; // Update in-memory array
+                languageModalOverlay.classList.remove('show');
+                alert('Your language preferences have been saved!');
+                // Reload reels with new preferences
+                loadReels(currentView); 
+            } catch (error) {
+                console.error("Error saving language preferences:", error);
+                alert("Failed to save preferences. Please try again.");
+            }
+        }
+      });
+
+      skipLanguagesBtn.addEventListener('click', async () => {
+        if (currentUser) {
+            try {
+                await db.collection("users").doc(currentUser.uid).update({
+                    isFirstLogin: false, // Mark as not first login, even if no languages were chosen
+                    contentLanguages: [] // Explicitly set to empty if skipping
+                });
+                userContentLanguages = []; // Ensure preferences are empty
+                languageModalOverlay.classList.remove('show');
+                alert('You can set your language preferences later in your profile.');
+                loadReels(currentView); // Load all reels if skipped
+            } catch (error) {
+                console.error("Error skipping language preferences:", error);
+                alert("Failed to skip preferences. Please try again.");
+            }
+        }
+      });
+
+      // Add event listener to each checkbox label for styling
+      languageOptionsContainer.addEventListener('change', (event) => {
+        if (event.target.type === 'checkbox' && event.target.name === 'contentLanguage') {
+          const span = event.target.nextElementSibling;
+          if (event.target.checked) {
+            span.style.backgroundColor = '#007bff';
+            span.style.borderColor = '#007bff';
+            span.style.color = 'white';
+            // If 'All' is checked, uncheck all others
+            if (event.target.value === 'All') {
+                document.querySelectorAll('input[name="contentLanguage"]').forEach(checkbox => {
+                    if (checkbox.value !== 'All') {
+                        checkbox.checked = false;
+                        checkbox.nextElementSibling.style.backgroundColor = '#333';
+                        checkbox.nextElementSibling.style.borderColor = '#444';
+                        checkbox.nextElementSibling.style.color = 'white';
+                    }
+                });
+            } else { // If any other language is checked, uncheck 'All'
+                const allCheckbox = document.querySelector('input[name="contentLanguage"][value="All"]');
+                if (allCheckbox && allCheckbox.checked) {
+                    allCheckbox.checked = false;
+                    allCheckbox.nextElementSibling.style.backgroundColor = '#333';
+                    allCheckbox.nextElementSibling.style.borderColor = '#444';
+                    allCheckbox.nextElementSibling.style.color = 'white';
+                }
+            }
+          } else {
+            span.style.backgroundColor = '#333';
+            span.style.borderColor = '#444';
+            span.style.color = 'white';
+          }
+        }
+      });
+
+    }); // End DOMContentLoaded
   </script>
 </body>
 </html>
