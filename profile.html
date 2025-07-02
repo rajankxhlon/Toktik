@@ -364,6 +364,77 @@
             margin-bottom: 4px;
         }
 
+        /* --- Language Selection Modal Styles --- */
+        .language-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Ensure it's on top */
+        }
+
+        .language-modal-content {
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh; /* Limit height for scrollability */
+            overflow-y: auto; /* Enable scrolling for many languages */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .language-modal-content h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: white;
+            text-align: center;
+        }
+
+        .language-modal-content ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .language-modal-content li {
+            padding: 12px 10px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .language-modal-content li:last-child {
+            border-bottom: none;
+        }
+
+        .language-modal-content li:hover {
+            background-color: #333;
+        }
+
+        .language-modal-close-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 1.5em;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+        }
+        .language-modal-header {
+            position: relative;
+            width: 100%;
+            text-align: center;
+        }
+
     </style>
 </head>
 <body>
@@ -426,6 +497,16 @@
         <a href="profile.html" class="nav-item active" id="nav-profile"><i class="fas fa-user"></i><span>Profile</span></a>
     </div>
 
+    <div id="languageModal" class="language-modal-overlay hidden">
+        <div class="language-modal-content">
+            <div class="language-modal-header">
+                <h3>Select Language</h3>
+                <button class="language-modal-close-btn" id="closeLanguageModalBtn"><i class="fas fa-times"></i></button>
+            </div>
+            <ul id="languageList">
+                </ul>
+        </div>
+    </div>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
@@ -479,7 +560,20 @@
         const menuLogoutBtn = document.getElementById('menuLogoutBtn');
         const menuVerificationBtn = document.getElementById('menuVerificationBtn');
 
+        // Language Modal Elements
+        const languageModal = document.getElementById('languageModal');
+        const languageList = document.getElementById('languageList');
+        const closeLanguageModalBtn = document.getElementById('closeLanguageModalBtn');
+
+        // Array of common languages
+        // UPDATED: To match languages in home.html
+        const LANGUAGES = [
+            "Hindi", "Punjabi", "English", "Bhojpuri", "Tamil", "Telugu",
+            "Bengali", "Kannada", "Marathi", "Gujarati"
+        ];
+
         let currentUser = null;
+        let currentReelIdForLanguageChange = null; // To store which reel's language is being changed
 
         document.addEventListener('DOMContentLoaded', () => {
             // Highlight the correct nav item
@@ -542,6 +636,17 @@
             // Edit Profile button functionality
             editProfileBtn.addEventListener('click', toggleEditBio);
             saveBioBtn.addEventListener('click', saveBio);
+
+            // Language Modal Listeners
+            closeLanguageModalBtn.addEventListener('click', hideLanguageModal);
+            languageModal.addEventListener('click', (event) => {
+                if (event.target === languageModal) { // Close if clicked on overlay
+                    hideLanguageModal();
+                }
+            });
+
+            // Populate language list in the modal
+            populateLanguageList();
         });
 
         async function loadUserProfile(userId) {
@@ -637,6 +742,7 @@
                         <div class="post-options-container">
                             <button class="post-options-btn"><i class="fas fa-ellipsis-v"></i></button>
                             <div class="post-options-menu">
+                                <button class="change-language-btn">Change Language</button>
                                 <button class="delete-reel-btn">Delete Reel</button>
                             </div>
                         </div>
@@ -658,6 +764,7 @@
                             <div class="post-options-container">
                                 <button class="post-options-btn"><i class="fas fa-ellipsis-v"></i></button>
                                 <div class="post-options-menu">
+                                    <button class="change-language-btn">Change Language</button>
                                     <button class="delete-reel-btn">Delete Reel</button>
                                 </div>
                             </div>
@@ -671,6 +778,7 @@
                     const postOptionsBtn = thumbnailDiv.querySelector('.post-options-btn');
                     const postOptionsMenu = thumbnailDiv.querySelector('.post-options-menu');
                     const deleteReelBtn = thumbnailDiv.querySelector('.delete-reel-btn');
+                    const changeLanguageBtn = thumbnailDiv.querySelector('.change-language-btn'); // Get the new button
 
                     postOptionsBtn.addEventListener('click', (event) => {
                         event.stopPropagation(); // Prevent click from triggering thumbnail click
@@ -690,6 +798,15 @@
                         if (confirm('Are you sure you want to delete this reel?')) {
                             await deleteReel(reelId, publicId);
                         }
+                        postOptionsMenu.classList.remove('show'); // Close menu after action
+                    });
+
+                    // Add event listener for the new "Change Language" button
+                    changeLanguageBtn.addEventListener('click', async (event) => {
+                        event.stopPropagation(); // Prevent click from triggering thumbnail click
+                        const reelId = thumbnailDiv.dataset.reelId;
+                        currentReelIdForLanguageChange = reelId; // Store the reel ID
+                        showLanguageModal();
                         postOptionsMenu.classList.remove('show'); // Close menu after action
                     });
 
@@ -833,6 +950,50 @@
             } catch (error) {
                 console.error('Error saving bio:', error);
                 alert('Failed to save bio. Please try again.');
+            }
+        }
+
+        // --- Language Modal Functions ---
+        function showLanguageModal() {
+            languageModal.classList.remove('hidden');
+        }
+
+        function hideLanguageModal() {
+            languageModal.classList.add('hidden');
+            currentReelIdForLanguageChange = null; // Clear the stored reel ID
+        }
+
+        function populateLanguageList() {
+            languageList.innerHTML = ''; // Clear existing list
+            LANGUAGES.forEach(lang => {
+                const listItem = document.createElement('li');
+                listItem.textContent = lang;
+                listItem.dataset.language = lang; // Store language in a data attribute
+                listItem.addEventListener('click', handleLanguageSelection);
+                languageList.appendChild(listItem);
+            });
+        }
+
+        async function handleLanguageSelection(event) {
+            const selectedLanguage = event.target.dataset.language;
+
+            if (currentReelIdForLanguageChange && selectedLanguage) {
+                try {
+                    await db.collection('reels').doc(currentReelIdForLanguageChange).update({
+                        language: selectedLanguage
+                    });
+                    alert(`Reel language updated to "${selectedLanguage}" successfully!`);
+                    hideLanguageModal(); // Close the modal
+                    // Optionally, you might want to reload the reel data to reflect changes,
+                    // but since language isn't directly visible on thumbnail, it's not strictly necessary.
+                    // await loadMyReels(currentUser.uid); // Uncomment if you want to force reload all reels
+                } catch (error) {
+                    console.error('Error updating reel language:', error);
+                    alert('Failed to update reel language. Please try again.');
+                }
+            } else {
+                console.error("No reel ID or language selected for update.");
+                hideLanguageModal();
             }
         }
     </script>
