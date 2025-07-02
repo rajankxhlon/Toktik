@@ -86,6 +86,7 @@
             font-weight: bold;
             margin-right: 5px;
             color: white; /* Ensure username is visible */
+            cursor: pointer; /* Indicate clickable username */
         }
         .notification-content .timestamp {
             color: #aaa;
@@ -119,7 +120,10 @@
         }
         .follow-back-btn.followed {
             background-color: #555;
-            cursor: default;
+            cursor: pointer; /* Changed to pointer to indicate it's clickable for unfollow */
+        }
+        .follow-back-btn.followed:hover {
+            background-color: #666; /* A slight hover effect for "Following" state */
         }
         .follow-back-btn:not(.followed):hover {
             background-color: #0056b3;
@@ -187,23 +191,18 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Define your Cloudinary Cloud Name here for thumbnail generation
         const CLOUDINARY_CLOUD_NAME = "dhc49hdvk";
 
         let currentUser = null;
-        const usersCache = {}; // Cache for user data to reduce Firestore reads
-        const reelsCache = {}; // Cache for reel data to reduce Firestore reads
+        const usersCache = {};
+        const reelsCache = {};
 
         document.addEventListener("DOMContentLoaded", () => {
             const notificationListDiv = document.getElementById('notificationList');
 
-            // Set active nav item
             document.getElementById('nav-activity').classList.add('active');
-            document.getElementById('nav-home').classList.remove('active'); // Ensure home is not active
-
-            // Correct the create reel link in the footer navigation
+            document.getElementById('nav-home').classList.remove('active');
             document.getElementById('nav-upload').setAttribute('href', 'create_reel.html');
-
 
             auth.onAuthStateChanged(async (user) => {
                 if (!user) {
@@ -240,16 +239,15 @@
                 try {
                     const notificationsRef = db.collection("notifications")
                         .where("toUserId", "==", currentUser.uid)
-                        .orderBy("timestamp", "desc"); // Order by newest first
+                        .orderBy("timestamp", "desc");
 
-                    // Use onSnapshot for real-time updates
                     notificationsRef.onSnapshot(async (snapshot) => {
                         if (snapshot.empty) {
                             notificationListDiv.innerHTML = '<p style="text-align: center; color: #aaa;">No new activity.</p>';
                             return;
                         }
 
-                        notificationListDiv.innerHTML = ''; // Clear existing notifications
+                        notificationListDiv.innerHTML = '';
 
                         for (const doc of snapshot.docs) {
                             const notification = doc.data();
@@ -257,21 +255,19 @@
 
                             const fromUser = await getUserData(notification.fromUserId);
                             const fromUsername = fromUser && fromUser.username ? fromUser.username : 'Unknown User';
-                            const fromUserProfilePic = fromUser && fromUser.profilePictureUrl ? fromUser.profilePictureUrl : ''; // Use profilePictureUrl
+                            const fromUserProfilePic = fromUser && fromUser.profilePictureUrl ? fromUser.profilePictureUrl : '';
                             const fromUserFirstLetter = fromUsername.charAt(0).toUpperCase();
 
                             let notificationText = '';
                             let thumbnailHtml = '';
-                            let actionButtonHtml = ''; // For "Follow Back"
+                            let actionButtonHtml = '';
 
-                            // Determine notification type and compose text
                             switch (notification.type) {
                                 case "like":
-                                    notificationText = `<div class="notification-text"><span class="username">@${fromUsername}</span> liked your reel.</div>`;
+                                    notificationText = `<div class="notification-text"><span class="username" data-user-id="${notification.fromUserId}">@${fromUsername}</span> liked your reel.</div>`;
                                     if (notification.reelId) {
                                         const reel = await getReelData(notification.reelId);
                                         if (reel && reel.videoUrl) {
-                                            // Extract public ID for Cloudinary thumbnail
                                             const parts = reel.videoUrl.split('/');
                                             const uploadIndex = parts.indexOf('upload');
                                             let publicId = '';
@@ -284,7 +280,7 @@
                                     }
                                     break;
                                 case "comment":
-                                    notificationText = `<div class="notification-text"><span class="username">@${fromUsername}</span> commented on your reel: "<strong>${notification.commentText}</strong>"</div>`;
+                                    notificationText = `<div class="notification-text"><span class="username" data-user-id="${notification.fromUserId}">@${fromUsername}</span> commented on your reel: "<strong>${notification.commentText}</strong>"</div>`;
                                     if (notification.reelId) {
                                         const reel = await getReelData(notification.reelId);
                                         if (reel && reel.videoUrl) {
@@ -300,8 +296,7 @@
                                     }
                                     break;
                                 case "follow":
-                                    notificationText = `<div class="notification-text"><span class="username">@${fromUsername}</span> started following you.</div>`;
-                                    // Check if current user is already following 'fromUser'
+                                    notificationText = `<div class="notification-text"><span class="username" data-user-id="${notification.fromUserId}">@${fromUsername}</span> started following you.</div>`;
                                     const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
                                     const currentUserFollowing = currentUserDoc.exists && currentUserDoc.data().following ? currentUserDoc.data().following : [];
                                     const isFollowingBack = currentUserFollowing.includes(notification.fromUserId);
@@ -309,11 +304,11 @@
                                     if (!isFollowingBack) {
                                         actionButtonHtml = `<button class="follow-back-btn" data-from-user-id="${notification.fromUserId}">Follow Back</button>`;
                                     } else {
-                                        actionButtonHtml = `<button class="follow-back-btn followed" disabled>Following</button>`;
+                                        actionButtonHtml = `<button class="follow-back-btn followed" data-from-user-id="${notification.fromUserId}">Following</button>`;
                                     }
                                     break;
                                 case "comment_like":
-                                    notificationText = `<div class="notification-text"><span class="username">@${fromUsername}</span> liked your comment: "<strong>${notification.commentText}</strong>"</div>`;
+                                    notificationText = `<div class="notification-text"><span class="username" data-user-id="${notification.fromUserId}">@${fromUsername}</span> liked your comment: "<strong>${notification.commentText}</strong>"</div>`;
                                     if (notification.reelId) {
                                         const reel = await getReelData(notification.reelId);
                                         if (reel && reel.videoUrl) {
@@ -329,7 +324,7 @@
                                     }
                                     break;
                                 default:
-                                    notificationText = `<div class="notification-text">New activity from <span class="username">@${fromUsername}</span>.</div>`;
+                                    notificationText = `<div class="notification-text">New activity from <span class="username" data-user-id="${notification.fromUserId}">@${fromUsername}</span>.</div>`;
                                     break;
                             }
 
@@ -341,7 +336,6 @@
                             notificationItem.className = `notification-item ${notification.read ? '' : 'unread'}`;
                             notificationItem.dataset.notificationId = notificationId;
 
-                            // Add dataset for linking if needed
                             if (notification.type === 'like' || notification.type === 'comment' || notification.type === 'comment_like') {
                                 notificationItem.dataset.reelId = notification.reelId;
                             }
@@ -359,30 +353,42 @@
                             `;
                             notificationListDiv.appendChild(notificationItem);
 
-                            // Event listener for marking as read
+                            // Event listener for marking as read and navigation for the entire notification item
                             notificationItem.addEventListener('click', async (e) => {
-                                // Prevent click from propagating if a button inside was clicked
-                                if (e.target.tagName === 'BUTTON') {
+                                if (e.target.tagName === 'BUTTON' || e.target.classList.contains('username')) {
                                     return;
                                 }
                                 if (!notification.read) {
                                     await db.collection("notifications").doc(notificationId).update({ read: true });
                                     notificationItem.classList.remove('unread');
                                 }
-                                // Optional: Add logic to navigate to the reel or user's profile
                                 if (notificationItem.dataset.reelId) {
                                     window.location.href = `home.html?reelId=${notificationItem.dataset.reelId}`;
                                 } else if (notificationItem.dataset.fromUserId && notification.type === 'follow') {
-                                    window.location.href = `profile.html?userId=${notificationItem.dataset.fromUserId}`;
+                                    window.location.href = `user_profile.html?userId=${notificationItem.dataset.fromUserId}`;
                                 }
                             });
 
-                            // Event listener for Follow Back button
+                            // Event listener for clicking on the username within the notification
+                            const usernameSpan = notificationItem.querySelector('.username');
+                            if (usernameSpan) {
+                                usernameSpan.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    const userId = usernameSpan.dataset.userId;
+                                    if (userId) {
+                                        window.location.href = `user_profile.html?userId=${userId}`;
+                                    }
+                                });
+                            }
+
+                            // Event listener for Follow/Following button
                             const followBackBtn = notificationItem.querySelector('.follow-back-btn');
-                            if (followBackBtn && !followBackBtn.classList.contains('followed')) {
-                                followBackBtn.addEventListener('click', async () => {
+                            if (followBackBtn) {
+                                followBackBtn.addEventListener('click', async (e) => {
+                                    e.stopPropagation();
                                     const targetUserId = followBackBtn.dataset.fromUserId;
                                     if (targetUserId && currentUser.uid) {
+                                        // Pass the button element to the toggleFollow function
                                         await toggleFollow(currentUser.uid, targetUserId, followBackBtn);
                                     }
                                 });
@@ -430,21 +436,27 @@
                             transaction.update(currentUserRef, { following: currentUserFollowing });
                             transaction.update(targetUserRef, { followers: targetUserFollowers });
 
-                            // Update button state
+                            // Update button state to "Following"
                             if (buttonElement) {
                                 buttonElement.textContent = 'Following';
                                 buttonElement.classList.add('followed');
-                                buttonElement.disabled = true;
+                                buttonElement.disabled = false; // Enable for unfollow
                             }
 
-                            // Optional: Create a notification for the person who was followed
-                            // (this specific notification is for when A follows B, B gets a notification)
-                            // This already happens when someone follows you, so no new notification needed here.
-                            // The "Follow Back" action implies you're now following them.
-
                         } else {
-                            // Unfollow action (shouldn't happen on "Follow Back" button)
-                            console.warn("Attempted to unfollow using a 'Follow Back' button.");
+                            // Unfollow action
+                            currentUserFollowing = currentUserFollowing.filter(id => id !== targetUserId);
+                            targetUserFollowers = targetUserFollowers.filter(id => id !== currentUserId);
+
+                            transaction.update(currentUserRef, { following: currentUserFollowing });
+                            transaction.update(targetUserRef, { followers: targetUserFollowers });
+
+                            // Update button state to "Follow Back"
+                            if (buttonElement) {
+                                buttonElement.textContent = 'Follow Back';
+                                buttonElement.classList.remove('followed');
+                                buttonElement.disabled = false;
+                            }
                         }
                     });
                 } catch (error) {
@@ -453,12 +465,11 @@
                 }
             }
 
-
             function formatTimestamp(timestamp) {
                 if (!timestamp) return '';
-                const date = timestamp.toDate(); // Convert Firestore Timestamp to JavaScript Date
+                const date = timestamp.toDate();
                 const now = new Date();
-                const diff = now.getTime() - date.getTime(); // Difference in milliseconds
+                const diff = now.getTime() - date.getTime();
 
                 const seconds = Math.floor(diff / 1000);
                 const minutes = Math.floor(seconds / 60);
