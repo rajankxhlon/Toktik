@@ -132,7 +132,40 @@
       padding-top: 50px;
       padding-bottom: 60px;
       box-sizing: border-box;
+      position: relative; /* Added for loading GIF positioning */
     }
+    
+    /* New styles for loading GIF */
+    .loading-gif-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 50; /* Ensure it's above the feed content but below headers */
+        background-color: rgba(0, 0, 0, 0.7); /* Optional: semi-transparent background */
+        width: 100%;
+        height: calc(100vh - 110px); /* Adjust height to cover feed area */
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .loading-gif-container.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none; /* Prevent interaction when hidden */
+    }
+
+    .loading-gif {
+        width: 400px; /* Adjust size as needed */
+        height: 40px; /* Adjust size as needed */
+        object-fit: contain;
+    }
+
+
     .reel-item {
       scroll-snap-align: start;
       height: calc(100vh - 50px - 60px);
@@ -227,11 +260,20 @@
         color: white;
         text-transform: uppercase;
     }
-    .verified-tick {
-      color: #007bff;
-      font-size: 0.8em;
-      margin-right: 5px;
+    /* Styles for the SVG verified tick */
+    .verified-tick-svg {
+        width: 1em; /* Adjust as needed */
+        height: 1em; /* Adjust as needed */
+        margin-left: 5px; /* Space from text */
+        vertical-align: middle; /* Align with text */
     }
+    .verified-tick-svg circle {
+        fill: #007bff; /* Blue color for the circle */
+    }
+    .verified-tick-svg path {
+        fill: white; /* White color for the checkmark */
+    }
+
     .mute-indicator {
       position: absolute;
       top: 70px;
@@ -426,10 +468,10 @@
         font-size: 0.8em;
     }
     /* Verified tick for comments */
-    .comment-username .verified-tick {
-        font-size: 0.7em; /* Slightly smaller for comments */
+    .comment-username .verified-tick-svg {
+        width: 0.8em; /* Slightly smaller for comments */
+        height: 0.8em;
         margin-left: 3px;
-        margin-right: 0;
     }
 
     /* New styles for in-modal comment input */
@@ -530,6 +572,14 @@
         position: relative;
         display: inline-block;
         margin-left: auto; /* Push to the right */
+    }
+    .comment-options-btn { /* Changed from .options-btn to be specific */
+        background: none;
+        border: none;
+        color: #aaa;
+        font-size: 1.2em;
+        cursor: pointer;
+        padding: 5px;
     }
     .comment-options-menu {
         position: absolute;
@@ -753,6 +803,43 @@
     .language-modal-content .skip-btn:hover {
         color: #0056b3;
     }
+
+    /* New styles for Double Tap Heart Animation */
+    .double-tap-heart-animation {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 8em; /* Large heart */
+      color: white; /* White color */
+      opacity: 0;
+      pointer-events: none; /* Make sure it doesn't block video clicks */
+      transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.7); /* Optional: add shadow for visibility */
+    }
+
+    .double-tap-heart-animation.show {
+      animation: pulseAndFade 0.8s ease-out forwards;
+    }
+
+    @keyframes pulseAndFade {
+      0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+      }
+      30% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 1;
+      }
+      70% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -774,8 +861,10 @@
     </div>
 
     <div id="reels-feed">
-      <p style="text-align: center; padding-top: 50vh; transform: translateY(-50%);">Loading reels...</p>
-    </div>
+      <div id="loadingGifContainer" class="loading-gif-container">
+          <img src="loading.gif" alt="Loading..." class="loading-gif">
+      </div>
+      </div>
     <div class="footer-nav">
       <a href="#" class="nav-item active" id="nav-home"><i class="fas fa-home"></i><span>Home</span></a>
       <a href="search.html" class="nav-item" id="nav-search"><i class="fas fa-search"></i><span>Search</span></a>
@@ -914,6 +1003,9 @@
       const drawerMenu = document.getElementById('drawerMenu');
       const changeLanguageOption = document.getElementById('changeLanguageOption');
 
+      // NEW Loading GIF Element
+      const loadingGifContainer = document.getElementById('loadingGifContainer');
+
 
       auth.onAuthStateChanged(async (user) => {
         if (!user) {
@@ -1027,8 +1119,10 @@
       }
 
       async function loadReels(view) {
-        reelsFeed.innerHTML = '<p style="text-align:center; padding-top:50vh; transform:translateY(-50%);">Loading reels...</p>';
-        
+        // Show loading GIF
+        loadingGifContainer.classList.remove('hidden');
+        reelsFeed.innerHTML = ''; // Clear existing reels
+
         let query;
         if (view === 'for-you') {
           // NEW: Filter "For You" reels by selected languages
@@ -1043,6 +1137,7 @@
         } else if (view === 'following') {
           if (!currentUser || currentUserFollowing.length === 0) {
             reelsFeed.innerHTML = `<p style="text-align:center; padding-top:50vh; transform:translateY(-50%);">You are not following anyone yet. Explore "For You" to find new creators!</p>`;
+            loadingGifContainer.classList.add('hidden'); // Hide GIF if no content
             return;
           }
           // Query for reels from users the current user is following
@@ -1060,12 +1155,14 @@
             }
         }
         
-        reelsFeed.innerHTML = '';
         await renderReels(reelsDocs);
+        loadingGifContainer.classList.add('hidden'); // Hide GIF after reels are rendered
       }
 
       async function loadSpecificReelAndOthers(targetReelId) {
-          reelsFeed.innerHTML = '<p style="text-align:center; padding-top:50vh; transform:translateY(-50%);">Loading specific reel...</p>';
+          // Show loading GIF
+          loadingGifContainer.classList.remove('hidden');
+          reelsFeed.innerHTML = ''; // Clear existing reels
           
           let reelsDocs = [];
           let targetReelDoc = null;
@@ -1110,8 +1207,8 @@
               reelsDocs = otherReelsDocs; // If target reel not found, just show others
           }
 
-          reelsFeed.innerHTML = '';
           await renderReels(reelsDocs, targetReelId);
+          loadingGifContainer.classList.add('hidden'); // Hide GIF after reels are rendered
       }
 
 
@@ -1174,7 +1271,15 @@
               ? `<img src="${uploaderProfilePic}" alt="Profile" class="profile-pic">`
               : `<div class="profile-pic placeholder">${usernameFirstLetter}</div>`;
             
-            const verifiedTickHtml = uploaderIsVerified ? '<i class="fas fa-check-circle verified-tick"></i>' : '';
+            // Replaced Font Awesome with SVG for verified tick
+            const verifiedTickHtml = uploaderIsVerified ? `
+                <svg class="verified-tick-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="256" height="256" viewBox="0 0 256 256" xml:space="preserve">
+                    <g style="stroke: none; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 10; fill: none; fill-rule: nonzero; opacity: 1;" transform="translate(1.4065934065934016 1.4065934065934016) scale(2.81 2.81)">
+                        <circle cx="45" cy="45" r="45" />
+                        <path d="M 41.134 59.667 c -1.146 0 -2.291 -0.436 -3.167 -1.304 l -13.46 -13.335 c -1.766 -1.749 -1.779 -4.599 -0.03 -6.364 c 1.749 -1.767 4.598 -1.778 6.364 -0.03 l 10.344 10.249 l 18.028 -17.297 c 1.793 -1.721 4.642 -1.662 6.362 0.132 c 1.721 1.793 1.662 4.642 -0.132 6.362 L 44.249 58.414 C 43.378 59.25 42.255 59.667 41.134 59.667 z" stroke-linecap="round"/>
+                    </g>
+                </svg>
+            ` : '';
 
             // Determine if current user follows this uploader
             const isFollowing = currentUser && currentUser.uid !== uploaderUserId && currentUserFollowing.includes(uploaderUserId);
@@ -1228,7 +1333,7 @@
               <video loop playsinline preload="metadata" ${globalMuteState ? 'muted' : ''}>
                 <source src="${data.videoUrl}" type="video/mp4" />
               </video>
-              <div class="mute-indicator ${globalMuteState ? '' : 'hidden'}"><i class="fas fa-volume-mute"></i></div>
+              <div class="mute-indicator ${globalMuteState ? '' : 'hidden'}"><i class="fas ${globalMuteState ? 'fa-volume-mute' : 'fa-volume-up'}"></i></div>
               <div class="reel-overlay">
                 <div class="reel-username-line">
                   <span class="reel-username">@${uploaderUsername}</span>
@@ -1257,17 +1362,37 @@
               <div class="views-count-display">
                   <i class="fas fa-eye"></i> ${viewsCount} views
               </div>
-            `;
+              <div class="double-tap-heart-animation"></div> `;
 
             const videoElement = reel.querySelector('video');
-            videoElement.addEventListener('click', () => {
+            const muteIndicator = reel.querySelector('.mute-indicator');
+            
+            // --- Mute/Unmute functionality now only on the mute indicator icon ---
+            muteIndicator.addEventListener('click', () => {
               globalMuteState = !globalMuteState;
+              // Apply mute state to all currently loaded videos
               document.querySelectorAll('video').forEach(v => v.muted = globalMuteState);
+              // Update all mute indicators
               document.querySelectorAll('.mute-indicator').forEach(ind => {
                 ind.classList.toggle('hidden', !globalMuteState);
                 ind.innerHTML = `<i class="fas ${globalMuteState ? 'fa-volume-mute' : 'fa-volume-up'}"></i>`;
               });
             });
+
+            // --- Double-Tap/Click to Like Logic ---
+            let lastClickTime = 0;
+            videoElement.addEventListener('click', async (event) => {
+                const clickTime = new Date().getTime();
+                if (clickTime - lastClickTime < 300) { // Check for double-click within 300ms
+                    event.preventDefault(); // Prevent default video controls if any
+                    const reelId = reel.dataset.reelId;
+                    const likeButton = reel.querySelector('.like-button');
+                    await toggleLike(reelId, likeButton); // Use a new function for toggling like
+                    triggerHeartAnimation(reel); // Trigger the animation
+                }
+                lastClickTime = clickTime;
+            });
+
 
             // Follow Button Listener (direct button)
             const reelFollowButton = reel.querySelector('.follow-button');
@@ -1280,51 +1405,8 @@
 
             const likeButton = reel.querySelector('.like-button');
             likeButton.addEventListener('click', async () => {
-              if (!currentUser) {
-                alert("Please log in to like reels.");
-                return;
-              }
               const reelId = likeButton.dataset.reelId;
-              const reelRef = db.collection("reels").doc(reelId);
-
-              try {
-                const reelDoc = await reelRef.get();
-                if (reelDoc.exists) {
-                  const currentLikes = reelDoc.data().likes || [];
-                  const likeIcon = likeButton.querySelector('i');
-                  const likeCountSpan = likeButton.querySelector('.like-count');
-
-                  if (currentLikes.includes(currentUser.uid)) {
-                    await reelRef.update({
-                      likes: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
-                    });
-                    likeIcon.classList.remove('liked');
-                    likeIcon.classList.add('far');
-                    likeCountSpan.textContent = currentLikes.length - 1;
-                  } else {
-                    await reelRef.update({
-                      likes: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-                    });
-                    likeIcon.classList.add('liked');
-                    likeIcon.classList.remove('far');
-                    likeIcon.classList.add('fas');
-                    likeCountSpan.textContent = currentLikes.length + 1;
-
-                    if (currentUser.uid !== uploaderUserId) {
-                      await db.collection("notifications").add({
-                        type: "like",
-                        fromUserId: currentUser.uid,
-                        toUserId: uploaderUserId,
-                        reelId: reelId,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        read: false
-                      });
-                    }
-                  }
-                }
-              } catch (error) {
-                console.error("Error updating like:", error);
-              }
+              await toggleLike(reelId, likeButton); // Use the new function here as well
             });
 
             reel.querySelector('.comment-button').addEventListener('click', (event) => {
@@ -1378,6 +1460,71 @@
             observer.observe(reel);
           }
       }
+
+      // --- NEW Function to handle liking/unliking a reel ---
+      async function toggleLike(reelId, likeButtonElement) {
+            if (!currentUser) {
+                alert("Please log in to like reels.");
+                return;
+            }
+            const reelRef = db.collection("reels").doc(reelId);
+
+            try {
+                const reelDoc = await reelRef.get();
+                if (reelDoc.exists) {
+                    const currentLikes = reelDoc.data().likes || [];
+                    const likeIcon = likeButtonElement.querySelector('i');
+                    const likeCountSpan = likeButtonElement.querySelector('.like-count');
+                    const uploaderUserId = reelDoc.data().userId;
+
+                    if (currentLikes.includes(currentUser.uid)) {
+                        // Unlike
+                        await reelRef.update({
+                            likes: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+                        });
+                        likeIcon.classList.remove('liked');
+                        likeIcon.classList.add('far');
+                        likeCountSpan.textContent = currentLikes.length - 1;
+                    } else {
+                        // Like
+                        await reelRef.update({
+                            likes: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+                        });
+                        likeIcon.classList.add('liked');
+                        likeIcon.classList.remove('far');
+                        likeIcon.classList.add('fas');
+                        likeCountSpan.textContent = currentLikes.length + 1;
+
+                        if (currentUser.uid !== uploaderUserId) {
+                            await db.collection("notifications").add({
+                                type: "like",
+                                fromUserId: currentUser.uid,
+                                toUserId: uploaderUserId,
+                                reelId: reelId,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                                read: false
+                            });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Error updating like:", error);
+            }
+        }
+
+        // --- Heart Animation Function ---
+        function triggerHeartAnimation(reelElement) {
+            const heartAnimationDiv = reelElement.querySelector('.double-tap-heart-animation');
+            heartAnimationDiv.innerHTML = '<i class="fas fa-heart"></i>'; // Add heart icon
+            heartAnimationDiv.classList.add('show'); // Trigger animation
+
+            // Remove after animation completes
+            setTimeout(() => {
+                heartAnimationDiv.classList.remove('show');
+                heartAnimationDiv.innerHTML = '';
+            }, 800); // Adjust time to match CSS animation duration
+        }
+
 
       // --- Functions for comments modal ---
 
@@ -1437,7 +1584,15 @@
               ? `<img src="${commentUserProfilePic}" alt="Profile" class="comment-user-pic">`
               : `<div class="comment-user-pic placeholder">${commentUserFirstLetter}</div>`;
             
-            const verifiedTickHtml = commentUserIsVerified ? '<i class="fas fa-check-circle verified-tick"></i>' : '';
+            // Replaced Font Awesome with SVG for comment verified tick
+            const verifiedTickHtml = commentUserIsVerified ? `
+                <svg class="verified-tick-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="256" height="256" viewBox="0 0 256 256" xml:space="preserve">
+                    <g style="stroke: none; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 10; fill: none; fill-rule: nonzero; opacity: 1;" transform="translate(1.4065934065934016 1.4065934065934016) scale(2.81 2.81)">
+                        <circle cx="45" cy="45" r="45" />
+                        <path d="M 41.134 59.667 c -1.146 0 -2.291 -0.436 -3.167 -1.304 l -13.46 -13.335 c -1.766 -1.749 -1.779 -4.599 -0.03 -6.364 c 1.749 -1.767 4.598 -1.778 6.364 -0.03 l 10.344 10.249 l 18.028 -17.297 c 1.793 -1.721 4.642 -1.662 6.362 0.132 c 1.721 1.793 1.662 4.642 -0.132 6.362 L 44.249 58.414 C 43.378 59.25 42.255 59.667 41.134 59.667 z" stroke-linecap="round"/>
+                    </g>
+                </svg>
+            ` : '';
             
             const likedByCurrentUser = currentUser && commentData.likes && commentData.likes.includes(currentUser.uid);
             const commentLikeIconClass = likedByCurrentUser ? 'fas fa-heart liked' : 'far fa-heart';
@@ -1627,21 +1782,21 @@
             await batch.commit();
 
             // 2. Delete the video file from Firebase Storage
-            if (videoUrl) {
-                // Cloudinary URLs typically don't need Firebase Storage deletion.
-                // If you are using Firebase Storage for videos, this part is relevant.
-                // Assuming Cloudinary based on your config, this might not be needed.
-                // If it was Firebase Storage, the URL would be like:
-                // gs://timtom-54c39.appspot.com/videos/somefile.mp4
-                // You would extract the path from that.
-                // For Cloudinary, you usually delete via their API, not directly from the URL.
-                // For now, I'll comment out the Firebase Storage part as you mentioned Cloudinary.
-                /*
-                const videoStorageRef = storage.refFromURL(videoUrl);
-                await videoStorageRef.delete();
-                console.log("Video deleted from Firebase Storage:", videoUrl);
-                */
-            }
+            // Cloudinary URLs typically don't need Firebase Storage deletion.
+            // If you are using Firebase Storage for videos, this part is relevant.
+            // Assuming Cloudinary based on your config, this might not be needed.
+            // If it was Firebase Storage, the URL would be like:
+            // gs://timtom-54c39.appspot.com/videos/somefile.mp4
+            // You would extract the path from that.
+            // For Cloudinary, you usually delete via their API, not directly from the URL.
+            // For now, I'll comment out the Firebase Storage part as you mentioned Cloudinary.
+            /*
+            const videoStorageRef = storage.refFromURL(videoUrl);
+            await videoStorageRef.delete();
+            console.log("Video deleted from Firebase Storage:", videoUrl);
+            */
+            // You might need to add Cloudinary deletion logic here if you're storing the public_id in Firestore
+            // and want to delete the file from Cloudinary as well.
 
             // 3. Delete the reel document from Firestore
             await db.collection("reels").doc(reelId).delete();
@@ -1913,4 +2068,4 @@
     }); // End DOMContentLoaded
   </script>
 </body>
-</html>
+  </html>
