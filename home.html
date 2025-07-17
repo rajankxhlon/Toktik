@@ -1220,36 +1220,58 @@
 
         let initialScrollDone = false; // Flag to ensure scroll only happens once
 
+        // --- Intersection Observer for Lazy Loading and Playback ---
+        // Root margin increased to preload videos slightly before they are fully in view.
+        // This helps in smoother transitions when scrolling.
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
               const video = entry.target.querySelector('video');
+              const reelId = entry.target.dataset.reelId;
               const indicator = entry.target.querySelector('.mute-indicator');
-              const reelId = entry.target.dataset.reelId; // Get reelId from dataset
 
               if (entry.isIntersecting) {
-                video.muted = globalMuteState;
-                video.currentTime = 0;
-                video.play().catch(() => {});
-                currentPlayingVideo = video;
-                currentMuteIndicator = indicator;
-                indicator.classList.toggle('hidden', !globalMuteState);
-                indicator.innerHTML = `<i class="fas ${globalMuteState ? 'fa-volume-mute' : 'fa-volume-up'}"></i>`;
+                // Set the video src only when it's intersecting
+                if (!video.src && video.dataset.src) {
+                    video.src = video.dataset.src;
+                    video.load(); // Start loading the video
+                }
                 
-                // Increment view count when a reel starts playing
-                incrementReelViewCount(reelId);
+                // Play only if it's mostly in view
+                if (entry.intersectionRatio >= 0.8) {
+                    video.muted = globalMuteState;
+                    video.currentTime = 0; // Reset video to start
+                    video.play().catch(error => console.error("Video play failed:", error));
+                    currentPlayingVideo = video;
+                    currentMuteIndicator = indicator;
+                    indicator.classList.toggle('hidden', !globalMuteState);
+                    indicator.innerHTML = `<i class="fas ${globalMuteState ? 'fa-volume-mute' : 'fa-volume-up'}"></i>`;
+                    
+                    // Increment view count when a reel starts playing
+                    incrementReelViewCount(reelId);
 
-                // If an initial reel was specified and we haven't scrolled to it yet
-                if (initialReelId && !initialScrollDone && reelId === initialReelId) {
-                    video.scrollIntoView({ behavior: 'auto', block: 'start' });
-                    initialScrollDone = true;
+                    // If an initial reel was specified and we haven't scrolled to it yet
+                    if (initialReelId && !initialScrollDone && reelId === initialReelId) {
+                        video.scrollIntoView({ behavior: 'auto', block: 'start' });
+                        initialScrollDone = true;
+                    }
+                } else {
+                    // Pause if partially intersecting but not enough for full play
+                    video.pause();
                 }
 
               } else {
                 video.pause();
-                indicator.classList.add('hidden');
+                // When a video leaves the viewport, you might consider clearing its src to free up memory.
+                // However, for typical short reels, keeping it buffered might be fine.
+                // If you notice memory issues, uncomment the next line:
+                // video.removeAttribute('src'); 
+                // video.load(); // Reset the video element state
+                if (indicator) {
+                    indicator.classList.add('hidden');
+                }
               }
             });
-          }, { threshold: 0.8 });
+          }, { threshold: [0, 0.2, 0.4, 0.6, 0.8, 1.0], rootMargin: '100px 0px 100px 0px' }); // Load videos 100px before they enter view
 
           for (const doc of reelsDocs) { // Use the (potentially filtered/shuffled) reelsDocs
             const data = doc.data();
@@ -1330,8 +1352,7 @@
             const viewsCount = data.viewsCount || 0; // Get viewsCount from data, default to 0
 
             reel.innerHTML = `
-              <video loop playsinline preload="metadata" ${globalMuteState ? 'muted' : ''}>
-                <source src="${data.videoUrl}" type="video/mp4" />
+              <video loop playsinline preload="metadata" ${globalMuteState ? 'muted' : ''} data-src="${data.videoUrl}">
               </video>
               <div class="mute-indicator ${globalMuteState ? '' : 'hidden'}"><i class="fas ${globalMuteState ? 'fa-volume-mute' : 'fa-volume-up'}"></i></div>
               <div class="reel-overlay">
@@ -1370,13 +1391,14 @@
             // --- Mute/Unmute functionality now only on the mute indicator icon ---
             muteIndicator.addEventListener('click', () => {
               globalMuteState = !globalMuteState;
-              // Apply mute state to all currently loaded videos
-              document.querySelectorAll('video').forEach(v => v.muted = globalMuteState);
-              // Update all mute indicators
-              document.querySelectorAll('.mute-indicator').forEach(ind => {
-                ind.classList.toggle('hidden', !globalMuteState);
-                ind.innerHTML = `<i class="fas ${globalMuteState ? 'fa-volume-mute' : 'fa-volume-up'}"></i>`;
-              });
+              // Only update the currently playing video and its indicator
+              if (currentPlayingVideo) {
+                  currentPlayingVideo.muted = globalMuteState;
+              }
+              if (currentMuteIndicator) {
+                  currentMuteIndicator.classList.toggle('hidden', !globalMuteState);
+                  currentMuteIndicator.innerHTML = `<i class="fas ${globalMuteState ? 'fa-volume-mute' : 'fa-volume-up'}"></i>`;
+              }
             });
 
             // --- Double-Tap/Click to Like Logic ---
@@ -1823,6 +1845,11 @@
                     const video = firstReel.querySelector('video');
                     const indicator = firstReel.querySelector('.mute-indicator');
                     if (video && indicator) {
+                        // Ensure video src is loaded before attempting to play
+                        if (!video.src && video.dataset.src) {
+                            video.src = video.dataset.src;
+                            video.load();
+                        }
                         video.muted = globalMuteState;
                         video.currentTime = 0;
                         video.play().catch(() => {});
@@ -2068,4 +2095,4 @@
     }); // End DOMContentLoaded
   </script>
 </body>
-  </html>
+</html>
